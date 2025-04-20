@@ -67,15 +67,6 @@ export default function TabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="transaction"
-        options={{
-          title: 'Transaction',
-          tabBarButton: () => null, // Hide this tab from tab bar
-          headerShown: true,
-          headerTitle: 'Transaction Details',
-        }}
-      />
     </Tabs>
   );
 }
