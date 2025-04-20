@@ -15,7 +15,9 @@ import AnimatedCard from '../../src/components/ui/AnimatedCard';
 import { Skeleton } from '../../src/components/ui/Skeleton';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../src/context/ThemeContext';
+import { useSMS } from '../../src/context/SMSContext';
 import ThemedView from '../../src/components/ui/ThemedView';
+import TransactionNotification from '../../src/components/transaction/TransactionNotification';
 
 export default function Expenses() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -26,7 +28,10 @@ export default function Expenses() {
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'year' | 'all'>('month');
   const [filterType, setFilterType] = useState<'all' | 'expense' | 'income'>('all');
   const [showTestControls, setShowTestControls] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationTransaction, setNotificationTransaction] = useState<Transaction | null>(null);
   const { isDarkMode } = useTheme();
+  const { lastTransaction } = useSMS();
   const theme = isDarkMode ? darkTheme : lightTheme;
   const router = useRouter();
 
@@ -37,6 +42,30 @@ export default function Expenses() {
   useEffect(() => {
     applyFilters();
   }, [transactions, timeframe, filterType]);
+
+  // Handle new transactions from SMS
+  useEffect(() => {
+    if (lastTransaction) {
+      // Update transactions list
+      setTransactions(prevTransactions => {
+        // Check if the transaction is already in the list (avoid duplicates)
+        const exists = prevTransactions.some(tx => 
+          tx.originalSMS === lastTransaction.originalSMS && 
+          tx.amount === lastTransaction.amount &&
+          tx.date === lastTransaction.date
+        );
+        
+        if (!exists) {
+          // Show notification for the new transaction
+          setNotificationTransaction(lastTransaction);
+          setShowNotification(true);
+          return [lastTransaction, ...prevTransactions];
+        }
+        
+        return prevTransactions;
+      });
+    }
+  }, [lastTransaction]);
 
   const loadTransactions = async () => {
     try {
@@ -154,7 +183,14 @@ export default function Expenses() {
 
   const viewTransaction = (transaction: Transaction) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(`/dashboard/transaction?id=${transaction.id}`);
+    // Show transaction details directly in the expenses page
+    setNotificationTransaction(transaction);
+    setShowNotification(true);
+  };
+
+  const handleDismissNotification = () => {
+    setShowNotification(false);
+    setNotificationTransaction(null);
   };
 
   if (initialLoad) {
@@ -432,10 +468,21 @@ export default function Expenses() {
           )}
         </Animated.View>
         
+        {/* Show transaction notification */}
+        {showNotification && notificationTransaction && (
+          <TransactionNotification 
+            transaction={notificationTransaction}
+            onDismiss={handleDismissNotification}
+            onViewDetails={(transaction) => {
+              handleDismissNotification();
+              viewTransaction(transaction);
+            }}
+          />
+        )}
+
         <FloatingActionButton 
+          icon="add"
           onPress={addTransaction}
-          icon="add-outline"
-          color={theme.colors.primary}
         />
       </View>
     </ThemedView>

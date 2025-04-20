@@ -149,6 +149,27 @@ export const BANK_PATTERNS: BankPattern[] = [
       type: 'debit',
       bank: 'GooglePay'
     })
+  },
+  // Add a specific pattern for UPI messages like the example
+  {
+    regex: /[Dd]ear UPI user A\/C [Xx](\d+)\s+([a-zA-Z]+)\s+by\s+([\d.,]+)\s+on\s+date\s+(\d+[A-Za-z]+\d+)\s+trf to\s+([A-Za-z\s]+)\s+Refno\s+(\d+)/i,
+    extract(matches: RegExpMatchArray): Transaction {
+      const amount = parseFloat(matches[3].replace(/,/g, ''));
+      const action = matches[2].toLowerCase();
+      const date = formatDateFromText(matches[4]);
+      const recipient = matches[5].trim();
+      const refNo = matches[6];
+      
+      return {
+        id: v4(),
+        amount: amount,
+        date: date,
+        description: `UPI payment to ${recipient} (Ref: ${refNo})`,
+        type: action.includes('debit') || action.includes('debited') ? 'debit' : 'credit',
+        bank: 'SBI',
+        merchant: recipient
+      };
+    }
   }
 ];
 
@@ -303,8 +324,20 @@ export function isTransactionSMS(smsText: string): boolean {
   const transactionKeywords = [
     /debited/i, /credited/i, /transaction/i, /spent/i, /payment/i,
     /account/i, /a\/c/i, /bank/i, /bal/i, /transfer/i, /upi/i,
-    /rupees/i, /rs\./i, /inr/i, /₹/
+    /rupees/i, /rs\./i, /inr/i, /₹/, /trf to/i, /refno/i,
+    /debit/i, /credit/i, /paid/i, /received/i, /withdraw/i
   ];
   
-  return transactionKeywords.some(keyword => keyword.test(smsText));
+  // Check for UPI specific patterns
+  const upiPatterns = [
+    /UPI user A\/C .+ debited/i,
+    /[Aa]\/[Cc].+debited.+trf to.+Refno/i,
+    /[Aa]\/[Cc].+credited.+Refno/i,
+    /UPI\/\d+\s/i,
+    /Paid\s+Rs\.\s*[\d,\.]+\s+to/i,
+    /Received\s+Rs\.\s*[\d,\.]+\s+from/i
+  ];
+  
+  return transactionKeywords.some(keyword => keyword.test(smsText)) || 
+         upiPatterns.some(pattern => pattern.test(smsText));
 } 

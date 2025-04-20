@@ -80,7 +80,10 @@ export default function SMSInputScreen() {
       
       if (parsedTransaction) {
         // Add category to the transaction - use await to resolve the promise
-        const category = await categorizeTransaction(parsedTransaction.description);
+        const category = await categorizeTransaction(
+          parsedTransaction.description,
+          parsedTransaction.amount
+        );
         
         const transactionWithCategory = {
           ...parsedTransaction,

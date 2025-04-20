@@ -545,4 +545,68 @@ export async function generateFinancialAdvice(
       }
     ];
   }
+}
+
+/**
+ * Verify if a message is a transaction SMS using Gemini AI
+ */
+export async function verifyTransactionSMS(smsText: string): Promise<{isTransaction: boolean; confidence: number}> {
+  try {
+    // Check if API key is configured
+    if (apiKey === 'API_KEY_NOT_CONFIGURED') {
+      console.warn('Gemini API key not configured, falling back to pattern matching');
+      return { isTransaction: false, confidence: 0 };
+    }
+
+    const prompt = `
+      You are an SMS analyzer focused on identifying financial transactions. Analyze this SMS and determine if it's a financial transaction message.
+      
+      SMS text: "${smsText}"
+      
+      A transaction SMS typically contains:
+      - References to money/amounts (Rs, INR, ₹, etc.). Only consider these if they mention actions like debited, credited, paid, received, withdrawn etc
+      - Actions like debited, credited, paid, received, withdrawn
+      - Account references (A/c, account, UPI)
+      - References to transfers, payments, or purchases
+      - Reference numbers or transaction IDs
+      - You do not need to consider messages that are not related to financial transactions.
+      - You do not need to consider messages that say something related to offers, discounts, rewards, etc.
+      
+      Consider bank messages, UPI notifications, payment app alerts, and credit/debit card alerts.
+      
+      Return only a JSON object with two properties:
+      - isTransaction: boolean (true if this is a transaction message)
+      - confidence: number (between 0 and 1, how confident you are)
+      - details: string (briefly explain why you think it is or isn't a transaction)
+      
+      Format your response exactly as: {"isTransaction": true/false, "confidence": 0.X, "details": "explanation"}
+    `;
+    
+    const response = await callGeminiAPI(prompt);
+    
+    try {
+      // Try to parse the JSON response
+      const result = JSON.parse(response);
+      
+      if (typeof result.isTransaction === 'boolean' && typeof result.confidence === 'number') {
+        return {
+          isTransaction: result.isTransaction,
+          confidence: result.confidence
+        };
+      }
+    } catch (parseError) {
+      console.error('Error parsing AI response:', parseError);
+      // Try to extract a simple yes/no if JSON parsing fails
+      const yesMatch = response.match(/true|yes|it is a transaction/i);
+      if (yesMatch) {
+        return { isTransaction: true, confidence: 0.7 };
+      }
+    }
+    
+    // Fallback
+    return { isTransaction: false, confidence: 0 };
+  } catch (error) {
+    console.error('Error verifying transaction SMS with AI:', error);
+    return { isTransaction: false, confidence: 0 };
+  }
 } 

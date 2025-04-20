@@ -20,7 +20,13 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.abhinav99.RupeeRadar"
+      "package": "com.abhinav99.RupeeRadar",
+      "permissions": [
+        "android.permission.RECEIVE_SMS",
+        "android.permission.READ_SMS",
+        "android.permission.RECEIVE_SMS",
+        "android.permission.READ_SMS"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -49,6 +55,12 @@
       "eas": {
         "projectId": "93b065c5-9e72-417b-beca-7b68caddb7cd"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/93b065c5-9e72-417b-beca-7b68caddb7cd"
     }
   }
 }

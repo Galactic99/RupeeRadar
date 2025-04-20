@@ -13,6 +13,16 @@
     },
     "production": {
       "autoIncrement": true
+    },
+    "development-apk": {
+      "android": {
+        "buildType": "apk"
+      },
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "channel": "development-apk"
     }
   },
   "submit": {
