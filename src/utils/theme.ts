@@ -56,24 +56,24 @@ export const darkColors = {
   // Neutrals
   background: '#121212',
   surface: '#1E1E1E',
-  surfaceVariant: '#2C2C2C',
+  surfaceVariant: '#272727',
   
   // Text
-  textPrimary: '#E0E0E0',
-  textSecondary: '#AAAAAA',
-  textHint: '#717171',
-  textDisabled: '#5C5C5C',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#E0E0E0',
+  textHint: '#AAAAAA',
+  textDisabled: '#868686',
   textLight: '#FFFFFF',
   
   // Status
-  error: '#EF5350',
-  warning: '#FFA726',
-  success: '#66BB6A',
-  info: '#42A5F5',
+  error: '#FF5252',
+  warning: '#FFB74D',
+  success: '#69F0AE',
+  info: '#40C4FF',
   
   // Transaction specific
-  debit: '#EF5350',
-  credit: '#66BB6A',
+  debit: '#FF5252',
+  credit: '#69F0AE',
   
   // Others
   divider: '#383838',

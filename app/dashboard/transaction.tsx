@@ -92,7 +92,7 @@ export default function TransactionScreen() {
               title="Back to Expenses"
               onPress={handleBackPress}
               variant="outlined"
-              icon={<Ionicons name="arrow-back" size={20} color={theme.colors.primary} style={styles.buttonIcon} />}
+              icon={<Ionicons name="arrow-back" size={20} color={isDarkMode ? theme.colors.primaryLight : theme.colors.primary} style={styles.buttonIcon} />}
             />
           </View>
         </ScrollView>

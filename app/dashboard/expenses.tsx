@@ -213,6 +213,11 @@ export default function Expenses() {
               { label: 'Add Sample', onPress: addSampleData },
               { label: 'Clear All', onPress: clearData }
             ]}
+            theme={{ 
+              colors: { 
+                onSurface: isDarkMode ? theme.colors.textPrimary : undefined 
+              } 
+            }}
           >
             Test controls for development
           </Banner>
@@ -226,12 +231,41 @@ export default function Expenses() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
             buttons={[
-              { value: 'week', label: 'Week' },
-              { value: 'month', label: 'Month' },
-              { value: 'year', label: 'Year' },
-              { value: 'all', label: 'All' },
+              { 
+                value: 'week', 
+                label: 'Week', 
+                style: { backgroundColor: isDarkMode ? (timeframe === 'week' ? '#272727' : 'transparent') : undefined },
+                labelStyle: { color: isDarkMode ? '#FFFFFF' : undefined }
+              },
+              { 
+                value: 'month', 
+                label: 'Month', 
+                style: { backgroundColor: isDarkMode ? (timeframe === 'month' ? '#272727' : 'transparent') : undefined },
+                labelStyle: { color: isDarkMode ? '#FFFFFF' : undefined }
+              },
+              { 
+                value: 'year', 
+                label: 'Year', 
+                style: { backgroundColor: isDarkMode ? (timeframe === 'year' ? '#272727' : 'transparent') : undefined },
+                labelStyle: { color: isDarkMode ? '#FFFFFF' : undefined }
+              },
+              { 
+                value: 'all', 
+                label: 'All', 
+                style: { backgroundColor: isDarkMode ? (timeframe === 'all' ? '#272727' : 'transparent') : undefined },
+                labelStyle: { color: isDarkMode ? '#FFFFFF' : undefined }
+              },
             ]}
-            style={styles.segmentedButtons}
+            style={[
+              styles.segmentedButtons,
+              isDarkMode && { borderColor: 'rgba(255,255,255,0.3)' }
+            ]}
+            theme={{ 
+              colors: { 
+                primary: isDarkMode ? '#64B5F6' : '#2196F3', // Accent color
+                outline: isDarkMode ? 'rgba(255,255,255,0.3)' : undefined, // Border color
+              } 
+            }}
           />
           
           <View style={styles.chipContainer}>
@@ -241,7 +275,20 @@ export default function Expenses() {
                 setFilterType('all');
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
-              style={[styles.chip, filterType === 'all' && styles.selectedChip]}
+              style={[
+                styles.chip, 
+                {
+                  backgroundColor: isDarkMode 
+                    ? (filterType === 'all' ? 'rgba(100, 181, 246, 0.25)' : '#272727') 
+                    : (filterType === 'all' ? 'rgba(33, 150, 243, 0.12)' : '#F0F0F0')
+                }
+              ]}
+              selectedColor={isDarkMode ? '#FFFFFF' : '#1976D2'}
+              textStyle={{ 
+                color: isDarkMode 
+                  ? '#FFFFFF' // White text in dark mode regardless of selection
+                  : (filterType === 'all' ? '#1976D2' : '#212121') // Blue when selected, black when not
+              }}
             >
               All
             </Chip>
@@ -251,7 +298,20 @@ export default function Expenses() {
                 setFilterType('expense');
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
-              style={[styles.chip, filterType === 'expense' && styles.selectedChip]}
+              style={[
+                styles.chip, 
+                {
+                  backgroundColor: isDarkMode 
+                    ? (filterType === 'expense' ? 'rgba(100, 181, 246, 0.25)' : '#272727') 
+                    : (filterType === 'expense' ? 'rgba(33, 150, 243, 0.12)' : '#F0F0F0')
+                }
+              ]}
+              selectedColor={isDarkMode ? '#FFFFFF' : '#1976D2'}
+              textStyle={{ 
+                color: isDarkMode 
+                  ? '#FFFFFF' // White text in dark mode regardless of selection
+                  : (filterType === 'expense' ? '#1976D2' : '#212121') // Blue when selected, black when not
+              }}
             >
               Expenses
             </Chip>
@@ -261,7 +321,20 @@ export default function Expenses() {
                 setFilterType('income');
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
-              style={[styles.chip, filterType === 'income' && styles.selectedChip]}
+              style={[
+                styles.chip, 
+                {
+                  backgroundColor: isDarkMode 
+                    ? (filterType === 'income' ? 'rgba(100, 181, 246, 0.25)' : '#272727') 
+                    : (filterType === 'income' ? 'rgba(33, 150, 243, 0.12)' : '#F0F0F0')
+                }
+              ]}
+              selectedColor={isDarkMode ? '#FFFFFF' : '#1976D2'}
+              textStyle={{ 
+                color: isDarkMode 
+                  ? '#FFFFFF' // White text in dark mode regardless of selection
+                  : (filterType === 'income' ? '#1976D2' : '#212121') // Blue when selected, black when not
+              }}
             >
               Income
             </Chip>
@@ -403,9 +476,6 @@ const styles = StyleSheet.create({
   chip: {
     marginRight: 8,
     marginBottom: 8,
-  },
-  selectedChip: {
-    backgroundColor: 'rgba(33, 150, 243, 0.12)',
   },
   summaryContainer: {
     borderRadius: 12,

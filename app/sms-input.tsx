@@ -22,8 +22,10 @@ import Button from '../src/components/ui/Button';
 import LoadingIndicator from '../src/components/ui/LoadingIndicator';
 import { Transaction } from '../src/types/transaction';
 import { saveTransaction as saveTransactionToStorage } from '../src/services/storageService';
-import theme from '../src/utils/theme';
+import lightTheme, { darkTheme } from '../src/utils/theme';
 import Animated, { FadeIn, FadeInUp, FadeOut } from 'react-native-reanimated';
+import { useTheme } from '../src/context/ThemeContext';
+import ThemedView from '../src/components/ui/ThemedView';
 
 export default function SMSInputScreen() {
   const [smsText, setSmsText] = useState('');
@@ -33,6 +35,8 @@ export default function SMSInputScreen() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const theme = isDarkMode ? darkTheme : lightTheme;
 
   // Clear transaction preview when SMS text changes
   useEffect(() => {
@@ -151,7 +155,7 @@ export default function SMSInputScreen() {
   };
 
   return (
-    <>
+    <ThemedView>
       <Stack.Screen 
         options={{ 
           title: 'SMS Analysis',
@@ -164,7 +168,7 @@ export default function SMSInputScreen() {
         }} 
       />
       <Animated.ScrollView 
-        style={styles.container} 
+        style={[styles.container, { backgroundColor: theme.colors.background }]} 
         contentContainerStyle={styles.contentContainer}
         keyboardShouldPersistTaps="handled"
         entering={FadeIn.duration(300)}
@@ -181,11 +185,20 @@ export default function SMSInputScreen() {
           style={styles.inputContainer}
           entering={FadeInUp.duration(500).springify()}
         >
-          <Text style={styles.label}>Paste your bank transaction SMS below</Text>
+          <Text style={[styles.label, { color: theme.colors.textPrimary }]}>
+            Paste your bank transaction SMS below
+          </Text>
           
           <View style={styles.textInputContainer}>
             <TextInput
-              style={styles.textInput}
+              style={[
+                styles.textInput, 
+                { 
+                  backgroundColor: theme.colors.surface,
+                  color: theme.colors.textPrimary,
+                  borderColor: theme.colors.divider,
+                }
+              ]}
               multiline
               value={smsText}
               onChangeText={setSmsText}
@@ -217,7 +230,7 @@ export default function SMSInputScreen() {
           
           {error ? (
             <Animated.Text 
-              style={styles.errorText}
+              style={[styles.errorText, { color: theme.colors.error }]}
               entering={FadeIn.duration(300)}
               exiting={FadeOut.duration(200)}
             >
@@ -231,7 +244,7 @@ export default function SMSInputScreen() {
             loading={isLoading}
             disabled={!smsText.trim()}
             style={styles.button}
-            icon={!isLoading ? <Ionicons name="analytics-outline" size={20} color="white" style={styles.buttonIcon} /> : undefined}
+            icon={!isLoading ? <Ionicons name="analytics-outline" size={20} color={isDarkMode ? "#FFFFFF" : "white"} style={styles.buttonIcon} /> : undefined}
           />
         </Animated.View>
 
@@ -252,138 +265,127 @@ export default function SMSInputScreen() {
               loading={isSaving}
               variant="primary"
               style={styles.saveButton}
-              icon={!isSaving ? <Ionicons name="save-outline" size={20} color="white" style={styles.buttonIcon} /> : undefined}
+              icon={!isSaving ? <Ionicons name="save-outline" size={20} color={isDarkMode ? "#FFFFFF" : "white"} style={styles.buttonIcon} /> : undefined}
             />
           </Animated.View>
         )}
 
         <View style={styles.examples}>
-          <Text style={styles.examplesTitle}>Example SMS Formats</Text>
+          <Text style={[styles.examplesTitle, { color: theme.colors.textPrimary }]}>Example SMS Formats</Text>
           
           <Animated.View 
-            style={styles.exampleCard}
+            style={[styles.exampleCard, { backgroundColor: theme.colors.surfaceVariant }]}
             entering={FadeInUp.duration(400).delay(400)}
           >
-            <Text style={styles.exampleLabel}>HDFC Bank</Text>
-            <Text style={styles.exampleText}>
+            <Text style={[styles.exampleLabel, { color: theme.colors.primary }]}>HDFC Bank</Text>
+            <Text style={[styles.exampleText, { color: theme.colors.textSecondary }]}>
               HDFC Bank: INR 1,499.00 debited from a/c XX1234 on 12-04-23 AMAZON. Avl bal: INR 24,599.35
             </Text>
           </Animated.View>
           
           <Animated.View 
-            style={styles.exampleCard}
+            style={[styles.exampleCard, { backgroundColor: theme.colors.surfaceVariant }]}
             entering={FadeInUp.duration(400).delay(500)}
           >
-            <Text style={styles.exampleLabel}>ICICI Bank</Text>
-            <Text style={styles.exampleText}>
+            <Text style={[styles.exampleLabel, { color: theme.colors.primary }]}>ICICI Bank</Text>
+            <Text style={[styles.exampleText, { color: theme.colors.textSecondary }]}>
               Rs.850.00 debited from a/c XX3456 on 13-Apr-23 towards UPI-SWIGGY RefNo 123456789012.
             </Text>
           </Animated.View>
           
           <Animated.View 
-            style={styles.exampleCard}
+            style={[styles.exampleCard, { backgroundColor: theme.colors.surfaceVariant }]}
             entering={FadeInUp.duration(400).delay(600)}
           >
-            <Text style={styles.exampleLabel}>SBI</Text>
-            <Text style={styles.exampleText}>
+            <Text style={[styles.exampleLabel, { color: theme.colors.primary }]}>SBI</Text>
+            <Text style={[styles.exampleText, { color: theme.colors.textSecondary }]}>
               Your A/c X4321 is debited with Rs.2,500.00 on 10/04/2023 (UPI Ref No 123456789) and A/c bal is Rs 52,425.75
             </Text>
           </Animated.View>
         </View>
       </Animated.ScrollView>
-    </>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   contentContainer: {
-    padding: theme.spacing.lg,
-    paddingBottom: theme.spacing.xxl,
+    padding: 16,
+    paddingBottom: 48,
     flexGrow: 1,
   },
   inputContainer: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: 24,
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: theme.spacing.sm,
-    color: theme.colors.textPrimary,
+    marginBottom: 8,
   },
   textInputContainer: {
     position: 'relative',
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   textInput: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
+    borderRadius: 12,
+    padding: 16,
     paddingRight: 50,
     minHeight: 120,
     fontSize: 15,
-    color: theme.colors.textPrimary,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
-    ...theme.shadows.small,
   },
   inputActions: {
     position: 'absolute',
-    right: theme.spacing.sm,
-    top: theme.spacing.sm,
+    right: 8,
+    top: 8,
     flexDirection: 'row',
   },
   clearButton: {
-    padding: theme.spacing.xs,
-    marginRight: theme.spacing.xs,
+    padding: 4,
+    marginRight: 4,
   },
   pasteButton: {
-    padding: theme.spacing.xs,
+    padding: 4,
   },
   errorText: {
-    color: theme.colors.error,
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
     fontSize: 14,
   },
   button: {
-    marginTop: theme.spacing.sm,
+    marginTop: 8,
   },
   previewContainer: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: 32,
   },
   saveButton: {
-    marginTop: theme.spacing.md,
+    marginTop: 16,
   },
   examples: {
-    marginTop: theme.spacing.lg,
+    marginTop: 24,
   },
   examplesTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   exampleCard: {
-    backgroundColor: theme.colors.surfaceVariant,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
   },
   exampleLabel: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: theme.colors.primary,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 4,
   },
   exampleText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
   buttonIcon: {
-    marginRight: theme.spacing.xs,
+    marginRight: 4,
   },
 }); 

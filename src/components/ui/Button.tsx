@@ -99,13 +99,13 @@ const Button = forwardRef<any, ButtonProps>((props, ref) => {
       case 'secondary':
         return [
           styles.buttonText, 
-          { color: isDarkMode ? theme.colors.textPrimary : '#333333' }, 
+          { color: isDarkMode ? '#FFFFFF' : '#333333' }, 
           textStyle
         ];
       case 'outlined':
         return [
           styles.buttonText, 
-          { color: theme.colors.primary }, 
+          { color: isDarkMode ? theme.colors.primaryLight : theme.colors.primary }, 
           textStyle
         ];
       case 'primary':

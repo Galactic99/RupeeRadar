@@ -7,6 +7,8 @@ import Animated, {
   withTiming, 
   Easing 
 } from 'react-native-reanimated';
+import lightTheme, { darkTheme } from '../../utils/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 type SkeletonProps = {
   width?: number | string;
@@ -21,6 +23,8 @@ const Skeleton: React.FC<SkeletonProps> = ({
   borderRadius = 4,
   style,
 }) => {
+  const { isDarkMode } = useTheme();
+  const theme = isDarkMode ? darkTheme : lightTheme;
   const opacity = useSharedValue(0.3);
 
   useEffect(() => {
@@ -39,7 +43,12 @@ const Skeleton: React.FC<SkeletonProps> = ({
     <Animated.View
       style={[
         styles.skeleton,
-        { width, height, borderRadius },
+        { 
+          width, 
+          height, 
+          borderRadius,
+          backgroundColor: theme.colors.shimmer
+        },
         animatedStyle,
         style,
       ]}
@@ -69,7 +78,7 @@ const SkeletonRow: React.FC<{
 
 const styles = StyleSheet.create({
   skeleton: {
-    backgroundColor: '#e0e0e0',
+    // backgroundColor will be set dynamically
   },
   row: {
     flexDirection: 'row',

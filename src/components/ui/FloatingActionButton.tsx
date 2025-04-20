@@ -9,7 +9,8 @@ import Animated, {
   withSpring
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import theme from '../../utils/theme';
+import lightTheme, { darkTheme } from '../../utils/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 interface FloatingActionButtonProps {
   icon: string;
@@ -27,9 +28,15 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
   onPress,
   style,
   label,
-  color = theme.colors.primary,
+  color,
   size = 56
 }) => {
+  const { isDarkMode } = useTheme();
+  const theme = isDarkMode ? darkTheme : lightTheme;
+  
+  // Use provided color or default from theme
+  const buttonColor = color || theme.colors.primary;
+
   // Animation values
   const scale = useSharedValue(1);
   const rotate = useSharedValue(0);
@@ -71,10 +78,13 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
       style={[
         styles.container,
         { 
-          backgroundColor: color,
+          backgroundColor: buttonColor,
           width: size,
           height: size,
           borderRadius: size / 2,
+          bottom: theme.spacing.xl,
+          right: theme.spacing.lg,
+          ...theme.shadows.large
         },
         style,
         animatedStyle
@@ -84,8 +94,15 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
       onPressOut={handlePressOut}
       activeOpacity={0.9}
     >
-      <Ionicons name={icon as any} size={size/2} color="white" />
-      {label && <Text style={styles.label}>{label}</Text>}
+      <Ionicons name={icon as any} size={size/2} color={theme.colors.textLight} />
+      {label && (
+        <Text style={[
+          styles.label,
+          { color: theme.colors.textLight }
+        ]}>
+          {label}
+        </Text>
+      )}
     </AnimatedTouchable>
   );
 };
@@ -94,17 +111,13 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.shadows.large,
     position: 'absolute',
-    bottom: theme.spacing.xl,
-    right: theme.spacing.lg,
     zIndex: 100,
   },
   label: {
     position: 'absolute',
     right: 64,
     backgroundColor: 'rgba(0,0,0,0.7)',
-    color: 'white',
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 4,

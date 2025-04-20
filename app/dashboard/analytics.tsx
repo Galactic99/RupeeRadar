@@ -208,11 +208,35 @@ export default function Analytics() {
             value={timeframe}
             onValueChange={(value) => setTimeframe(value as "week" | "month" | "year")}
             buttons={[
-              { value: "week", label: "Week" },
-              { value: "month", label: "Month" },
-              { value: "year", label: "Year" },
+              { 
+                value: "week", 
+                label: "Week",
+                style: { backgroundColor: isDarkMode ? (timeframe === 'week' ? '#272727' : 'transparent') : undefined },
+                labelStyle: { color: isDarkMode ? '#FFFFFF' : undefined }
+              },
+              { 
+                value: "month", 
+                label: "Month",
+                style: { backgroundColor: isDarkMode ? (timeframe === 'month' ? '#272727' : 'transparent') : undefined },
+                labelStyle: { color: isDarkMode ? '#FFFFFF' : undefined }
+              },
+              { 
+                value: "year", 
+                label: "Year",
+                style: { backgroundColor: isDarkMode ? (timeframe === 'year' ? '#272727' : 'transparent') : undefined },
+                labelStyle: { color: isDarkMode ? '#FFFFFF' : undefined }
+              },
             ]}
-            style={styles.segmentedButtons}
+            style={[
+              styles.segmentedButtons,
+              isDarkMode && { borderColor: 'rgba(255,255,255,0.3)' }
+            ]}
+            theme={{ 
+              colors: { 
+                primary: isDarkMode ? '#64B5F6' : '#2196F3', // Accent color
+                outline: isDarkMode ? 'rgba(255,255,255,0.3)' : undefined, // Border color
+              } 
+            }}
           />
         </View>
 
@@ -297,7 +321,10 @@ export default function Analytics() {
             <Card style={[styles.categoriesCard, { backgroundColor: theme.colors.surface }]}>
               <Card.Content>
                 {getCategoryData().slice(0, 5).map((category, index) => (
-                  <View key={index} style={styles.categoryRow}>
+                  <View key={index} style={[
+                    styles.categoryRow,
+                    { borderBottomColor: isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" }
+                  ]}>
                     <View style={styles.categoryNameContainer}>
                       <View
                         style={[
@@ -402,7 +429,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.1)",
   },
   categoryNameContainer: {
     flexDirection: "row",

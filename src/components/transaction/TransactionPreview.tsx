@@ -30,25 +30,60 @@ const TransactionPreview: React.FC<TransactionPreviewProps> = ({ transaction, on
   const isDebit = transaction.type === 'debit';
 
   return (
-    <AnimatedCard style={styles.container} onPress={onPress}>
-      <View style={[styles.header, { borderBottomColor: theme.colors.divider }]}>
-        <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Transaction Details</Text>
+    <AnimatedCard style={[
+      styles.container, 
+      isDarkMode && { 
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)'
+      }
+    ]} onPress={onPress}>
+      <View style={[
+        styles.header, 
+        { 
+          borderBottomColor: theme.colors.divider,
+          backgroundColor: isDarkMode ? theme.colors.surface : 'transparent'
+        }
+      ]}>
+        <Text style={[
+          styles.title, 
+          { 
+            color: theme.colors.textPrimary,
+            fontWeight: isDarkMode ? '700' : '600'
+          }
+        ]}>Transaction Details</Text>
       </View>
 
-      <View style={styles.row}>
+      <View style={[styles.row, { backgroundColor: theme.colors.surface }]}>
         <Animated.View 
-          style={styles.amountContainer}
+          style={[
+            styles.amountContainer,
+            isDarkMode && {
+              backgroundColor: 'rgba(255,255,255,0.05)',
+              borderRadius: 8,
+              paddingHorizontal: 16
+            }
+          ]}
           entering={FadeIn.delay(100).duration(400)}
         >
           <Text style={[
             styles.amountLabel, 
-            { color: isDebit ? theme.colors.debit : theme.colors.credit }
+            { 
+              color: isDebit ? theme.colors.debit : theme.colors.credit,
+              textShadowColor: isDarkMode ? 'rgba(0,0,0,0.75)' : 'transparent',
+              textShadowOffset: {width: 0, height: 1},
+              textShadowRadius: isDarkMode ? 2 : 0
+            }
           ]}>
             {isDebit ? 'SPENT' : 'RECEIVED'}
           </Text>
           <Text style={[
             styles.amount, 
-            { color: isDebit ? theme.colors.debit : theme.colors.credit }
+            { 
+              color: isDebit ? theme.colors.debit : theme.colors.credit,
+              textShadowColor: isDarkMode ? 'rgba(0,0,0,0.75)' : 'transparent',
+              textShadowOffset: {width: 0, height: 1},
+              textShadowRadius: isDarkMode ? 3 : 0
+            }
           ]}>
             {formatCurrency(transaction.amount)}
           </Text>
@@ -58,14 +93,26 @@ const TransactionPreview: React.FC<TransactionPreviewProps> = ({ transaction, on
       <View style={[styles.detailsContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
         <View style={styles.detailRow}>
           <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Date</Text>
-          <Text style={[styles.value, { color: theme.colors.textPrimary }]}>
+          <Text style={[
+            styles.value, 
+            { 
+              color: theme.colors.textPrimary,
+              fontWeight: isDarkMode ? '500' : 'normal'
+            }
+          ]}>
             {formatDateForDisplay(transaction.date)}
           </Text>
         </View>
 
         <View style={styles.detailRow}>
           <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Description</Text>
-          <Text style={[styles.value, { color: theme.colors.textPrimary }]}>
+          <Text style={[
+            styles.value, 
+            { 
+              color: theme.colors.textPrimary,
+              fontWeight: isDarkMode ? '500' : 'normal'
+            }
+          ]}>
             {transaction.description}
           </Text>
         </View>
@@ -77,10 +124,20 @@ const TransactionPreview: React.FC<TransactionPreviewProps> = ({ transaction, on
               <View 
                 style={[
                   styles.categoryIndicator, 
-                  { backgroundColor: getCategoryColor(transaction.category) }
+                  { 
+                    backgroundColor: getCategoryColor(transaction.category),
+                    borderWidth: isDarkMode ? 1 : 0,
+                    borderColor: 'rgba(255,255,255,0.2)'
+                  }
                 ]} 
               />
-              <Text style={[styles.categoryText, { color: theme.colors.textPrimary }]}>
+              <Text style={[
+                styles.categoryText, 
+                { 
+                  color: theme.colors.textPrimary,
+                  fontWeight: isDarkMode ? '600' : '500'
+                }
+              ]}>
                 {transaction.category}
               </Text>
             </View>
@@ -90,7 +147,13 @@ const TransactionPreview: React.FC<TransactionPreviewProps> = ({ transaction, on
         {transaction.bank && (
           <View style={styles.detailRow}>
             <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Bank</Text>
-            <Text style={[styles.value, { color: theme.colors.textPrimary }]}>
+            <Text style={[
+              styles.value, 
+              { 
+                color: theme.colors.textPrimary,
+                fontWeight: isDarkMode ? '500' : 'normal'
+              }
+            ]}>
               {transaction.bank}
             </Text>
           </View>
@@ -99,7 +162,13 @@ const TransactionPreview: React.FC<TransactionPreviewProps> = ({ transaction, on
         {transaction.balance !== null && transaction.balance !== undefined && (
           <View style={styles.detailRow}>
             <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Balance</Text>
-            <Text style={[styles.value, { color: theme.colors.textPrimary }]}>
+            <Text style={[
+              styles.value, 
+              { 
+                color: theme.colors.textPrimary,
+                fontWeight: isDarkMode ? '500' : 'normal'
+              }
+            ]}>
               {formatCurrency(transaction.balance)}
             </Text>
           </View>
@@ -108,9 +177,21 @@ const TransactionPreview: React.FC<TransactionPreviewProps> = ({ transaction, on
         <View style={styles.typeContainer}>
           <View style={[
             styles.typeIndicator, 
-            { backgroundColor: isDebit ? 'rgba(244, 67, 54, 0.1)' : 'rgba(76, 175, 80, 0.1)' }
+            { 
+              backgroundColor: isDebit 
+                ? (isDarkMode ? 'rgba(255, 82, 82, 0.2)' : 'rgba(244, 67, 54, 0.1)') 
+                : (isDarkMode ? 'rgba(105, 240, 174, 0.2)' : 'rgba(76, 175, 80, 0.1)')
+            }
           ]}>
-            <Text style={[styles.typeText, { color: theme.colors.textSecondary }]}>
+            <Text style={[
+              styles.typeText, 
+              { 
+                color: isDebit 
+                  ? (isDarkMode ? '#FF5252' : theme.colors.debit)
+                  : (isDarkMode ? '#69F0AE' : theme.colors.credit),
+                fontWeight: isDarkMode ? '700' : '700'
+              }
+            ]}>
               {isDebit ? 'EXPENSE' : 'INCOME'}
             </Text>
           </View>

@@ -84,11 +84,13 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
       disabled={disabled || !onPress}
       style={[
         {
-          backgroundColor: theme.colors.surface,
+          backgroundColor: isDarkMode ? theme.colors.surfaceVariant : theme.colors.surface,
           borderRadius: theme.borderRadius.md,
           padding: 16,
           marginVertical: 8,
           overflow: 'hidden',
+          borderWidth: isDarkMode ? 1 : 0,
+          borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'transparent',
         },
         theme.shadows[elevation],
         style,

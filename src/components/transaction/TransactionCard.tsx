@@ -5,8 +5,9 @@ import { formatDate, getDayName } from '../../utils/dateUtils';
 import { getCategoryColor } from '../../utils/categoryEngine';
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedCard from '../ui/AnimatedCard';
-import theme from '../../utils/theme';
+import lightTheme, { darkTheme } from '../../utils/theme';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import { useTheme } from '../../context/ThemeContext';
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -20,6 +21,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
   delay = 0
 }) => {
   const { amount, description, date, type, category } = transaction;
+  const { isDarkMode } = useTheme();
+  const theme = isDarkMode ? darkTheme : lightTheme;
 
   // Format currency amount
   const formatCurrency = (amount: number) => {
@@ -80,23 +83,30 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
           </View>
           
           <View style={styles.textContainer}>
-            <Text style={styles.description} numberOfLines={1}>
+            <Text style={[styles.description, { color: theme.colors.textPrimary }]} numberOfLines={1}>
               {truncateText(description)}
             </Text>
             
             <View style={styles.detailsRow}>
-              <Text style={styles.dateText}>{displayDate}</Text>
-              <Text style={styles.dotSeparator}>•</Text>
-              <Text style={styles.dayText}>{dayName}</Text>
+              <Text style={[styles.dateText, { color: theme.colors.textSecondary }]}>{displayDate}</Text>
+              <Text style={[styles.dotSeparator, { color: theme.colors.textHint }]}>•</Text>
+              <Text style={[styles.dayText, { color: theme.colors.textSecondary }]}>{dayName}</Text>
               
               {category && (
                 <>
-                  <Text style={styles.dotSeparator}>•</Text>
+                  <Text style={[styles.dotSeparator, { color: theme.colors.textHint }]}>•</Text>
                   <View style={styles.categoryContainer}>
                     <View 
-                      style={[styles.categoryDot, { backgroundColor: categoryColor }]} 
+                      style={[
+                        styles.categoryDot, 
+                        { 
+                          backgroundColor: categoryColor,
+                          borderWidth: isDarkMode ? 0.5 : 0,
+                          borderColor: 'rgba(255,255,255,0.3)'
+                        }
+                      ]} 
                     />
-                    <Text style={styles.categoryText}>{category}</Text>
+                    <Text style={[styles.categoryText, { color: theme.colors.textSecondary }]}>{category}</Text>
                   </View>
                 </>
               )}
@@ -108,7 +118,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
           <Text 
             style={[
               styles.amount, 
-              isDebit ? styles.debitAmount : styles.creditAmount
+              isDebit ? { color: theme.colors.debit } : { color: theme.colors.credit }
             ]}
           >
             {isDebit ? '-' : '+'}{formatCurrency(amount)}
@@ -121,7 +131,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: theme.spacing.xs,
+    marginVertical: 4,
   } as ViewStyle,
   row: {
     flexDirection: 'row',
@@ -136,10 +146,10 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 40,
     height: 40,
-    borderRadius: theme.borderRadius.round,
+    borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: theme.spacing.sm,
+    marginRight: 8,
   } as ViewStyle,
   textContainer: {
     flex: 1,
@@ -147,7 +157,6 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
     marginBottom: 2,
   } as TextStyle,
   detailsRow: {
@@ -156,16 +165,13 @@ const styles = StyleSheet.create({
   } as ViewStyle,
   dateText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
   } as TextStyle,
   dotSeparator: {
     fontSize: 12,
-    color: theme.colors.textHint,
     marginHorizontal: 4,
   } as TextStyle,
   dayText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
   } as TextStyle,
   categoryContainer: {
     flexDirection: 'row',
@@ -179,17 +185,10 @@ const styles = StyleSheet.create({
   } as ViewStyle,
   categoryText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
   } as TextStyle,
   amount: {
     fontSize: 16,
     fontWeight: '600',
-  } as TextStyle,
-  debitAmount: {
-    color: theme.colors.debit,
-  } as TextStyle,
-  creditAmount: {
-    color: theme.colors.credit,
   } as TextStyle,
 });
 
