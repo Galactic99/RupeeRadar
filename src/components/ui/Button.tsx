@@ -1,13 +1,21 @@
 import React, { forwardRef } from 'react';
 import { 
-  TouchableOpacity, 
   Text, 
   StyleSheet, 
   ActivityIndicator,
   TouchableOpacityProps,
   ViewStyle,
-  TextStyle 
+  TextStyle,
+  Pressable
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  interpolate,
+} from 'react-native-reanimated';
+import { useTheme } from '../../context/ThemeContext';
+import lightTheme, { darkTheme } from '../../utils/theme';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -17,7 +25,10 @@ interface ButtonProps extends TouchableOpacityProps {
   disabled?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
+  icon?: React.ReactNode;
 }
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const Button = forwardRef<any, ButtonProps>((props, ref) => {
   const {
@@ -28,86 +39,145 @@ const Button = forwardRef<any, ButtonProps>((props, ref) => {
     disabled = false,
     style,
     textStyle,
+    icon,
     ...rest
   } = props;
+
+  const { isDarkMode } = useTheme();
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
+  // Animation values
+  const pressed = useSharedValue(0);
+
+  // Animated styles
+  const animatedStyle = useAnimatedStyle(() => {
+    const scale = interpolate(
+      pressed.value,
+      [0, 1],
+      [1, 0.97]
+    );
+    
+    return {
+      transform: [{ scale }],
+    };
+  });
 
   const getButtonStyle = () => {
     switch (variant) {
       case 'secondary':
-        return [styles.button, styles.secondaryButton, style];
+        return [
+          styles.button, 
+          { 
+            backgroundColor: isDarkMode ? theme.colors.surfaceVariant : '#e0e0e0',
+          }, 
+          style
+        ];
       case 'outlined':
-        return [styles.button, styles.outlinedButton, style];
+        return [
+          styles.button, 
+          { 
+            backgroundColor: 'transparent',
+            borderWidth: 1.5,
+            borderColor: theme.colors.primary,
+            elevation: 0,
+            shadowOpacity: 0,
+          }, 
+          style
+        ];
       case 'primary':
       default:
-        return [styles.button, styles.primaryButton, style];
+        return [
+          styles.button, 
+          { backgroundColor: theme.colors.primary }, 
+          style
+        ];
     }
   };
 
   const getTextStyle = () => {
     switch (variant) {
       case 'secondary':
-        return [styles.buttonText, styles.secondaryText, textStyle];
+        return [
+          styles.buttonText, 
+          { color: isDarkMode ? theme.colors.textPrimary : '#333333' }, 
+          textStyle
+        ];
       case 'outlined':
-        return [styles.buttonText, styles.outlinedText, textStyle];
+        return [
+          styles.buttonText, 
+          { color: theme.colors.primary }, 
+          textStyle
+        ];
       case 'primary':
       default:
-        return [styles.buttonText, styles.primaryText, textStyle];
+        return [
+          styles.buttonText, 
+          { color: '#ffffff' }, 
+          textStyle
+        ];
     }
   };
 
+  const handlePressIn = () => {
+    pressed.value = withTiming(1, { duration: 100 });
+  };
+
+  const handlePressOut = () => {
+    pressed.value = withTiming(0, { duration: 200 });
+  };
+
+  const rippleColor = variant === 'primary' 
+    ? 'rgba(255, 255, 255, 0.2)' 
+    : `${theme.colors.primary}20`;
+
   return (
-    <TouchableOpacity
+    <AnimatedPressable
       ref={ref}
       onPress={onPress}
-      style={getButtonStyle()}
+      style={[getButtonStyle(), animatedStyle]}
       disabled={disabled || loading}
-      activeOpacity={0.7}
+      android_ripple={{ 
+        color: rippleColor,
+        borderless: false 
+      }}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       {...rest}
     >
       {loading ? (
         <ActivityIndicator 
           size="small" 
-          color={variant === 'primary' ? '#ffffff' : '#2196F3'} 
+          color={variant === 'primary' ? '#ffffff' : theme.colors.primary} 
         />
       ) : (
-        <Text style={getTextStyle()}>{title}</Text>
+        <>
+          {icon}
+          <Text style={getTextStyle()}>{title}</Text>
+        </>
       )}
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 });
 
 const styles = StyleSheet.create({
   button: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 120,
-  },
-  primaryButton: {
-    backgroundColor: '#2196F3',
-  },
-  secondaryButton: {
-    backgroundColor: '#e0e0e0',
-  },
-  outlinedButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#2196F3',
+    flexDirection: 'row',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
   },
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  primaryText: {
-    color: '#ffffff',
-  },
-  secondaryText: {
-    color: '#333333',
-  },
-  outlinedText: {
-    color: '#2196F3',
+    marginHorizontal: 8,
   },
 });
 

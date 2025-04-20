@@ -1,22 +1,27 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, ViewStyle, TextStyle } from 'react-native';
 import { Transaction } from '../../types/transaction';
+import { formatDate, getDayName } from '../../utils/dateUtils';
 import { getCategoryColor } from '../../utils/categoryEngine';
-import { formatDateForDisplay, getRelativeTimeString } from '../../utils/dateUtils';
+import { Ionicons } from '@expo/vector-icons';
+import AnimatedCard from '../ui/AnimatedCard';
+import theme from '../../utils/theme';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 interface TransactionCardProps {
   transaction: Transaction;
-  onPress?: (transaction: Transaction) => void;
+  onPress?: () => void;
+  delay?: number;
 }
 
 const TransactionCard: React.FC<TransactionCardProps> = ({ 
   transaction, 
-  onPress 
+  onPress,
+  delay = 0
 }) => {
-  const isDebit = transaction.type === 'debit';
-  
-  // Format currency
+  const { amount, description, date, type, category } = transaction;
+
+  // Format currency amount
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -24,179 +29,168 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
       maximumFractionDigits: 0,
     }).format(amount);
   };
-  
-  // Get category color
-  const categoryColor = transaction.category 
-    ? getCategoryColor(transaction.category) 
-    : '#ddd';
-  
-  // Get category icon
-  const getCategoryIcon = (category?: string) => {
+
+  // Truncate description if too long
+  const truncateText = (text: string, maxLength: number = 30) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
+  // Determine transaction icon based on category
+  const getTransactionIcon = () => {
     if (!category) return 'help-circle-outline';
     
-    switch (category) {
-      case 'Groceries':
-        return 'basket-outline';
-      case 'Food & Dining':
-        return 'restaurant-outline';
-      case 'Transport':
-        return 'car-outline';
-      case 'Shopping':
-        return 'cart-outline';
-      case 'Entertainment':
-        return 'film-outline';
-      case 'Bills & Utilities':
-        return 'receipt-outline';
-      case 'Health':
-        return 'medical-outline';
-      case 'Education':
-        return 'school-outline';
-      case 'Personal Care':
-        return 'person-outline';
-      case 'Home':
-        return 'home-outline';
-      case 'Travel':
-        return 'airplane-outline';
-      case 'Investment':
-        return 'trending-up-outline';
-      default:
-        return 'help-circle-outline';
-    }
+    const categoryIconMap: Record<string, string> = {
+      'Food': 'fast-food-outline',
+      'Groceries': 'basket-outline',
+      'Shopping': 'cart-outline',
+      'Transport': 'car-outline',
+      'Entertainment': 'film-outline',
+      'Bills': 'receipt-outline',
+      'Travel': 'airplane-outline',
+      'Health': 'medical-outline',
+      'Education': 'school-outline',
+      'Salary': 'cash-outline',
+      'Investment': 'trending-up-outline',
+      'Rent': 'home-outline',
+      'Other': 'grid-outline',
+    };
+    
+    return categoryIconMap[category] || 'help-circle-outline';
   };
-  
-  const handlePress = () => {
-    if (onPress) {
-      onPress(transaction);
-    }
-  };
-  
+
+  const isDebit = type === 'debit';
+  const iconName = getTransactionIcon();
+  const transactionDate = new Date(date);
+  const displayDate = formatDate(transactionDate);
+  const dayName = getDayName(transactionDate);
+  const categoryColor = category ? getCategoryColor(category) : '#9e9e9e';
+
   return (
-    <TouchableOpacity 
+    <AnimatedCard 
+      onPress={onPress}
       style={styles.container}
-      onPress={handlePress}
-      activeOpacity={0.7}
+      elevation="small"
+      delay={delay}
     >
-      <View style={styles.leftSection}>
-        <View style={[styles.iconContainer, { backgroundColor: categoryColor }]}>
-          <Ionicons 
-            name={getCategoryIcon(transaction.category)} 
-            size={18} 
-            color="#fff" 
-          />
-        </View>
-      </View>
-      
-      <View style={styles.middleSection}>
-        <Text style={styles.description} numberOfLines={1}>
-          {transaction.description}
-        </Text>
-        
-        <View style={styles.detailsRow}>
-          {transaction.category && (
-            <View style={styles.categoryPill}>
-              <Text style={styles.categoryText}>
-                {transaction.category}
-              </Text>
-            </View>
-          )}
+      <View style={styles.row}>
+        <View style={styles.leftContent}>
+          <View style={[styles.iconContainer, { backgroundColor: `${categoryColor}15` }]}>
+            <Ionicons name={iconName} size={20} color={categoryColor} />
+          </View>
           
-          <Text style={styles.dateText}>
-            {getRelativeTimeString(transaction.date)}
-          </Text>
+          <View style={styles.textContainer}>
+            <Text style={styles.description} numberOfLines={1}>
+              {truncateText(description)}
+            </Text>
+            
+            <View style={styles.detailsRow}>
+              <Text style={styles.dateText}>{displayDate}</Text>
+              <Text style={styles.dotSeparator}>•</Text>
+              <Text style={styles.dayText}>{dayName}</Text>
+              
+              {category && (
+                <>
+                  <Text style={styles.dotSeparator}>•</Text>
+                  <View style={styles.categoryContainer}>
+                    <View 
+                      style={[styles.categoryDot, { backgroundColor: categoryColor }]} 
+                    />
+                    <Text style={styles.categoryText}>{category}</Text>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
         </View>
-      </View>
-      
-      <View style={styles.rightSection}>
-        <Text 
-          style={[
-            styles.amount, 
-            isDebit ? styles.debitAmount : styles.creditAmount
-          ]}
-        >
-          {isDebit ? '-' : '+'}{formatCurrency(transaction.amount)}
-        </Text>
         
-        {transaction.bank && (
-          <Text style={styles.bankText}>{transaction.bank}</Text>
-        )}
+        <Animated.View entering={FadeIn.delay(delay + 300)}>
+          <Text 
+            style={[
+              styles.amount, 
+              isDebit ? styles.debitAmount : styles.creditAmount
+            ]}
+          >
+            {isDebit ? '-' : '+'}{formatCurrency(amount)}
+          </Text>
+        </Animated.View>
       </View>
-    </TouchableOpacity>
+    </AnimatedCard>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    marginVertical: theme.spacing.xs,
+  } as ViewStyle,
+  row: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  leftSection: {
-    marginRight: 12,
-    justifyContent: 'center',
-  },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
     alignItems: 'center',
-  },
-  middleSection: {
+    justifyContent: 'space-between',
+  } as ViewStyle,
+  leftContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
+  } as ViewStyle,
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: theme.borderRadius.round,
+    alignItems: 'center',
     justifyContent: 'center',
-  },
+    marginRight: theme.spacing.sm,
+  } as ViewStyle,
+  textContainer: {
+    flex: 1,
+  } as ViewStyle,
   description: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#333',
-    marginBottom: 4,
-  },
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  } as TextStyle,
   detailsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  categoryPill: {
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    marginRight: 8,
-  },
-  categoryText: {
-    fontSize: 12,
-    color: '#666',
-  },
+  } as ViewStyle,
   dateText: {
     fontSize: 12,
-    color: '#999',
-  },
-  rightSection: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    minWidth: 80,
-  },
+    color: theme.colors.textSecondary,
+  } as TextStyle,
+  dotSeparator: {
+    fontSize: 12,
+    color: theme.colors.textHint,
+    marginHorizontal: 4,
+  } as TextStyle,
+  dayText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+  } as TextStyle,
+  categoryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  } as ViewStyle,
+  categoryDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 4,
+  } as ViewStyle,
+  categoryText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+  } as TextStyle,
   amount: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
-  },
+  } as TextStyle,
   debitAmount: {
-    color: '#f44336',
-  },
+    color: theme.colors.debit,
+  } as TextStyle,
   creditAmount: {
-    color: '#4caf50',
-  },
-  bankText: {
-    fontSize: 12,
-    color: '#999',
-  },
+    color: theme.colors.credit,
+  } as TextStyle,
 });
 
 export default TransactionCard; 

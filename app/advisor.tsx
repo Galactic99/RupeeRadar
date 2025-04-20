@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, TextInput as RNTextInput } from 'react-native';
-import { Text, useTheme, Surface, Button, TextInput, Avatar, ActivityIndicator } from 'react-native-paper';
+import { Text, Surface, Button, TextInput, Avatar, ActivityIndicator } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
 import { getFilteredTransactions } from '../src/services/storageService';
 import { Transaction } from '../src/types/transaction';
@@ -8,6 +8,9 @@ import { Ionicons } from '@expo/vector-icons';
 import GeminiKeyMissing from '../src/components/GeminiKeyMissing';
 import { GEMINI_API_KEY } from '@env';
 import { callGeminiAPI, generateFinancialAdvice, FinancialAdvice } from '../src/services/geminiService';
+import { useTheme } from '../src/context/ThemeContext';
+import lightTheme, { darkTheme } from '../src/utils/theme';
+import ThemedView from '../src/components/ui/ThemedView';
 
 type MessageType = 'user' | 'bot' | 'thinking' | 'advice';
 
@@ -26,7 +29,8 @@ export default function AdvisorScreen() {
   const [loading, setLoading] = useState(true);
   const [isApiKeyMissing, setIsApiKeyMissing] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
-  const theme = useTheme();
+  const { isDarkMode } = useTheme();
+  const theme = isDarkMode ? darkTheme : lightTheme;
   const flatListRef = useRef<FlatList>(null);
 
   // Initial welcome message
@@ -240,56 +244,50 @@ export default function AdvisorScreen() {
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
+    const isUser = item.type === 'user';
+    
     if (item.type === 'thinking') {
       return (
-        <View style={[styles.messageContainer, styles.botMessageContainer]}>
-          <ActivityIndicator size="small" color={theme.colors.primary} style={styles.thinkingIndicator} />
-          <Text style={styles.thinkingText}>{item.text}</Text>
+        <View style={[styles.botMessageContainer]}>
+          <Surface style={[styles.thinkingBubble, { backgroundColor: theme.colors.surfaceVariant }]}>
+            <ActivityIndicator size="small" color={theme.colors.primary} style={styles.thinkingIndicator} />
+            <Text style={[styles.messageText, { color: theme.colors.textSecondary }]}>{item.text}</Text>
+          </Surface>
         </View>
       );
     }
     
     if (item.type === 'advice' && item.adviceData) {
-      const { title, content, tags, priority } = item.adviceData;
-      const priorityColor = priority === 'high' ? theme.colors.error : 
-                           priority === 'medium' ? '#FFC107' : 
-                           theme.colors.primary;
-      
       return (
-        <Surface style={[styles.adviceCard, { borderLeftColor: priorityColor }]}>
-          <Text style={styles.adviceTitle}>{title}</Text>
-          <Text style={styles.adviceContent}>{content}</Text>
-          <View style={styles.tagsContainer}>
-            {tags.map((tag, index) => (
-              <View key={index} style={styles.tagPill}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
-            ))}
-          </View>
-        </Surface>
+        <View style={styles.botMessageContainer}>
+          <Surface style={[styles.adviceBubble, { backgroundColor: theme.colors.surfaceVariant }]}>
+            <View style={styles.adviceHeader}>
+              <Ionicons name="bulb" size={20} color={theme.colors.primary} />
+              <Text style={[styles.adviceTitle, { color: theme.colors.textPrimary }]}>{item.adviceData.title}</Text>
+            </View>
+            <Text style={[styles.messageText, { color: theme.colors.textPrimary }]}>{item.adviceData.description}</Text>
+          </Surface>
+        </View>
       );
     }
     
     return (
-      <View style={[
-        styles.messageContainer, 
-        item.type === 'user' ? styles.userMessageContainer : styles.botMessageContainer
-      ]}>
-        {item.type === 'bot' && (
+      <View style={isUser ? styles.userMessageContainer : styles.botMessageContainer}>
+        {!isUser && (
           <Avatar.Icon 
-            size={32} 
+            size={36} 
             icon="robot" 
-            style={styles.botAvatar} 
-            color="white"
+            style={[styles.botAvatar, { backgroundColor: theme.colors.primary }]} 
           />
         )}
-        <Surface 
-          style={[
-            styles.messageBubble,
-            item.type === 'user' ? styles.userBubble : styles.botBubble
-          ]}
-        >
-          <Text style={item.type === 'user' ? styles.userMessageText : styles.botMessageText}>
+        <Surface style={[
+          isUser ? styles.userBubble : styles.botBubble,
+          { backgroundColor: isUser ? theme.colors.primary : theme.colors.surfaceVariant }
+        ]}>
+          <Text style={[
+            styles.messageText, 
+            { color: isUser ? theme.colors.textLight : theme.colors.textPrimary }
+          ]}>
             {item.text}
           </Text>
         </Surface>
@@ -298,179 +296,146 @@ export default function AdvisorScreen() {
   };
 
   if (isApiKeyMissing) {
-    return (
-      <View style={styles.container}>
-        <StatusBar style="auto" />
-        <GeminiKeyMissing feature="advisor" />
-      </View>
-    );
+    return <GeminiKeyMissing />;
   }
 
   if (loading && messages.length <= 1) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Setting up your financial advisor...</Text>
-      </View>
+      <ThemedView>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.textPrimary }]}>Setting up your advisor...</Text>
+        </View>
+      </ThemedView>
     );
   }
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <KeyboardAvoidingView 
-        style={styles.container} 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={80}
-      >
-        <StatusBar style="auto" />
-        
-        <View style={styles.header}>
-          <Text variant="headlineMedium" style={styles.title}>Financial Advisor</Text>
-        </View>
-        
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={item => item.id}
-          style={styles.messageList}
-          contentContainerStyle={styles.messageListContent}
-        />
-        
-        <View style={styles.inputContainer}>
-          <TextInput
-            mode="outlined"
-            value={input}
-            onChangeText={setInput}
-            placeholder="Ask about your finances..."
-            style={styles.input}
-            right={
-              <TextInput.Icon 
-                icon="send" 
-                onPress={handleSend} 
-                disabled={isThinking || !input.trim()} 
-                color={input.trim() ? theme.colors.primary : '#ccc'}
-              />
-            }
+    <ThemedView>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={styles.container}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.messageList}
           />
-        </View>
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+          
+          <Surface style={[styles.inputContainer, { backgroundColor: theme.colors.surface }]}>
+            <TextInput
+              value={input}
+              onChangeText={setInput}
+              placeholder="Ask me something about your finances..."
+              style={styles.input}
+              mode="outlined"
+              right={
+                <TextInput.Icon 
+                  icon="send" 
+                  onPress={handleSend} 
+                  disabled={input.trim() === '' || isThinking}
+                  color={theme.colors.primary}
+                />
+              }
+            />
+          </Surface>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    backgroundColor: 'white',
-  },
-  title: {
-    fontWeight: 'bold',
   },
   messageList: {
-    flex: 1,
-  },
-  messageListContent: {
     padding: 16,
-    paddingBottom: 8,
-  },
-  messageContainer: {
-    marginBottom: 16,
-    maxWidth: '80%',
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    paddingBottom: 80,
   },
   userMessageContainer: {
-    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 12,
   },
   botMessageContainer: {
-    alignSelf: 'flex-start',
-  },
-  botAvatar: {
-    backgroundColor: '#6200ee',
-    marginRight: 8,
-  },
-  messageBubble: {
-    padding: 12,
-    borderRadius: 20,
-    elevation: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginBottom: 12,
   },
   userBubble: {
-    backgroundColor: '#6200ee',
-    borderTopRightRadius: 4,
+    padding: 12,
+    borderRadius: 16,
+    borderBottomRightRadius: 4,
+    maxWidth: '80%',
+    elevation: 1,
   },
   botBubble: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 4,
+    padding: 12,
+    borderRadius: 16,
+    borderBottomLeftRadius: 4,
+    maxWidth: '80%',
+    elevation: 1,
   },
-  userMessageText: {
-    color: 'white',
+  thinkingBubble: {
+    padding: 12,
+    borderRadius: 16,
+    borderBottomLeftRadius: 4,
+    maxWidth: '80%',
+    elevation: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  botMessageText: {
-    color: '#333',
+  adviceBubble: {
+    padding: 12,
+    borderRadius: 16,
+    borderBottomLeftRadius: 4,
+    maxWidth: '85%',
+    elevation: 1,
+  },
+  botAvatar: {
+    marginRight: 8,
+    alignSelf: 'flex-end',
+  },
+  messageText: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  thinkingIndicator: {
+    marginRight: 8,
+  },
+  adviceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  adviceTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
   inputContainer: {
     padding: 8,
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    elevation: 4,
   },
   input: {
-    backgroundColor: 'white',
+    backgroundColor: 'transparent',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
   },
   loadingText: {
-    marginTop: 10,
-  },
-  thinkingIndicator: {
-    marginRight: 8,
-  },
-  thinkingText: {
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  adviceCard: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    backgroundColor: 'white',
-    elevation: 2,
-    alignSelf: 'stretch',
-  },
-  adviceTitle: {
+    marginTop: 16,
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  adviceContent: {
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  tagPill: {
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 16,
-    marginRight: 8,
-    marginBottom: 4,
-  },
-  tagText: {
-    fontSize: 12,
   },
 }); 

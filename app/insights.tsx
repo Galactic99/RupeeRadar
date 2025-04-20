@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { Text, SegmentedButtons, useTheme } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams } from 'expo-router';
@@ -14,6 +14,11 @@ import { getFilteredTransactions } from '../src/services/storageService';
 import { getStartDateForTimeframe } from '../src/utils/dateUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import Animated, { FadeIn, FadeInDown, FadeOut, SlideInRight } from 'react-native-reanimated';
+import theme from '../src/utils/theme';
+import PageLoader from '../src/components/ui/PageLoader';
+import { Skeleton, SkeletonRow } from '../src/components/ui/Skeleton';
+import AnimatedCard from '../src/components/ui/AnimatedCard';
 
 export default function InsightsScreen() {
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'year'>('month');
@@ -21,7 +26,8 @@ export default function InsightsScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [anomalousTransactions, setAnomalousTransactions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const theme = useTheme();
+  const [initialLoad, setInitialLoad] = useState(true);
+  const paperTheme = useTheme();
   const params = useLocalSearchParams();
 
   useEffect(() => {
@@ -47,6 +53,11 @@ export default function InsightsScreen() {
       });
       
       setTransactions(filteredTransactions);
+      
+      // Set initial load to false after first successful load
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
     } catch (error) {
       console.error('Error loading transactions:', error);
     } finally {
@@ -109,39 +120,77 @@ export default function InsightsScreen() {
     setRefreshing(false);
   };
 
+  if (initialLoad) {
+    return <PageLoader message="Loading your financial insights..." />;
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
       
-      <ScrollView
+      <Animated.ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
         }
+        entering={FadeIn.duration(400)}
       >
-        <View style={styles.timeframeContainer}>
+        <Animated.View 
+          style={styles.timeframeContainer}
+          entering={FadeInDown.duration(500).springify()}
+        >
           <Text variant="titleMedium" style={styles.sectionTitle}>Time Period</Text>
           <SegmentedButtons
             value={timeframe}
             onValueChange={(value) => setTimeframe(value as 'week' | 'month' | 'year')}
             buttons={[
-              { value: 'week', label: 'Week' },
-              { value: 'month', label: 'Month' },
-              { value: 'year', label: 'Year' },
+              { 
+                value: 'week', 
+                label: 'Week',
+                icon: 'calendar-week',
+                style: timeframe === 'week' ? styles.activeSegment : null
+              },
+              { 
+                value: 'month', 
+                label: 'Month',
+                icon: 'calendar-month',
+                style: timeframe === 'month' ? styles.activeSegment : null
+              },
+              { 
+                value: 'year', 
+                label: 'Year',
+                icon: 'calendar',
+                style: timeframe === 'year' ? styles.activeSegment : null
+              },
             ]}
             style={styles.segmentedButtons}
           />
-        </View>
+        </Animated.View>
         
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
-            <Text style={styles.loadingText}>Analyzing your spending...</Text>
+            <Text style={styles.loadingTitle}>Analyzing your spending...</Text>
+            <View style={styles.skeletonContainer}>
+              <Skeleton height={30} width="80%" style={styles.skeleton} />
+              <SkeletonRow items={2} height={100} style={styles.skeleton} />
+              <Skeleton height={200} style={styles.skeleton} />
+              <SkeletonRow items={3} height={40} style={styles.skeleton} />
+              <Skeleton height={30} width="60%" style={styles.skeleton} />
+              <SkeletonRow items={1} height={80} style={styles.skeleton} />
+            </View>
           </View>
         ) : transactions.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="analytics-outline" size={48} color="#ccc" />
+          <Animated.View 
+            style={styles.emptyContainer}
+            entering={FadeIn.delay(200)}
+          >
+            <Ionicons name="analytics-outline" size={64} color={theme.colors.textHint} />
             <Text style={styles.emptyText}>No transactions found</Text>
             <Text style={styles.emptySubtext}>
               Add some transactions to get AI-powered insights
@@ -152,7 +201,7 @@ export default function InsightsScreen() {
             >
               <Text style={styles.addButtonText}>Add Transaction</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         ) : (
           <>
             <SpendingInsights 
@@ -168,7 +217,7 @@ export default function InsightsScreen() {
           </>
         )}
         
-        <View style={styles.section}>
+        <AnimatedCard style={styles.section} elevation="small" entering={SlideInRight.duration(500).delay(300)}>
           <Text variant="titleMedium" style={styles.sectionTitle}>AI-Powered Features</Text>
           <Text variant="bodyMedium" style={styles.sectionDescription}>
             RupeeRadar uses artificial intelligence to help you understand your spending patterns
@@ -176,44 +225,53 @@ export default function InsightsScreen() {
           </Text>
           
           <View style={styles.featureList}>
-            <View style={styles.featureItem}>
-              <View style={[styles.featureIcon, { backgroundColor: theme.colors.primary }]}>
-                <Text style={styles.featureIconText}>🤖</Text>
+            <Animated.View 
+              style={styles.featureItem}
+              entering={FadeIn.delay(400)}
+            >
+              <View style={[styles.featureIcon, { backgroundColor: `${theme.colors.primary}20` }]}>
+                <Ionicons name="chatbubble-ellipses" size={24} color={theme.colors.primary} />
               </View>
               <View style={styles.featureContent}>
-                <Text variant="titleSmall">Smart Categorization</Text>
-                <Text variant="bodySmall">
+                <Text variant="titleSmall" style={styles.featureTitle}>Smart Categorization</Text>
+                <Text variant="bodySmall" style={styles.featureDesc}>
                   Automatically categorizes your transactions using advanced AI that learns from your spending patterns.
                 </Text>
               </View>
-            </View>
+            </Animated.View>
             
-            <View style={styles.featureItem}>
-              <View style={[styles.featureIcon, { backgroundColor: theme.colors.secondary }]}>
-                <Text style={styles.featureIconText}>📊</Text>
+            <Animated.View 
+              style={styles.featureItem}
+              entering={FadeIn.delay(500)}
+            >
+              <View style={[styles.featureIcon, { backgroundColor: `${theme.colors.secondary}20` }]}>
+                <Ionicons name="bar-chart" size={24} color={theme.colors.secondary} />
               </View>
               <View style={styles.featureContent}>
-                <Text variant="titleSmall">Spending Analysis</Text>
-                <Text variant="bodySmall">
+                <Text variant="titleSmall" style={styles.featureTitle}>Spending Analysis</Text>
+                <Text variant="bodySmall" style={styles.featureDesc}>
                   Get personalized insights about your spending habits and actionable recommendations.
                 </Text>
               </View>
-            </View>
+            </Animated.View>
             
-            <View style={styles.featureItem}>
-              <View style={[styles.featureIcon, { backgroundColor: theme.colors.tertiary }]}>
-                <Text style={styles.featureIconText}>⚠️</Text>
+            <Animated.View 
+              style={styles.featureItem}
+              entering={FadeIn.delay(600)}
+            >
+              <View style={[styles.featureIcon, { backgroundColor: `${theme.colors.warning}20` }]}>
+                <Ionicons name="alert-circle" size={24} color={theme.colors.warning} />
               </View>
               <View style={styles.featureContent}>
-                <Text variant="titleSmall">Anomaly Detection</Text>
-                <Text variant="bodySmall">
-                  Identifies unusual spending patterns and potentially fraudulent transactions.
+                <Text variant="titleSmall" style={styles.featureTitle}>Anomaly Detection</Text>
+                <Text variant="bodySmall" style={styles.featureDesc}>
+                  Identifies unusual spending patterns and potentially fraudulent transactions to keep your finances safe.
                 </Text>
               </View>
-            </View>
+            </Animated.View>
           </View>
-        </View>
-      </ScrollView>
+        </AnimatedCard>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -221,91 +279,116 @@ export default function InsightsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7f7f7',
+    backgroundColor: theme.colors.background,
   },
   scrollView: {
     flex: 1,
   },
   scrollViewContent: {
-    padding: 16,
+    padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxl,
   },
   timeframeContainer: {
-    marginBottom: 16,
-  },
-  segmentedButtons: {
-    marginTop: 8,
-  },
-  section: {
-    marginVertical: 16,
-    padding: 16,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    elevation: 2,
+    marginBottom: theme.spacing.lg,
   },
   sectionTitle: {
-    fontWeight: 'bold',
-    marginBottom: 8,
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.sm,
+  },
+  segmentedButtons: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    ...theme.shadows.small,
+  },
+  activeSegment: {
+    backgroundColor: `${theme.colors.primary}10`,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    padding: theme.spacing.lg,
+  },
+  loadingTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.lg,
+    textAlign: 'center',
+  },
+  skeletonContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  skeleton: {
+    marginBottom: theme.spacing.md,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing.xl,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    marginVertical: theme.spacing.lg,
+    ...theme.shadows.small,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginTop: theme.spacing.md,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.lg,
+  },
+  addButton: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.borderRadius.md,
+  },
+  addButtonText: {
+    color: theme.colors.textLight,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  section: {
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
   },
   sectionDescription: {
-    marginBottom: 16,
-    opacity: 0.7,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.md,
   },
   featureList: {
-    gap: 16,
+    marginTop: theme.spacing.md,
   },
   featureItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    marginBottom: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
   },
   featureIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
-    marginRight: 12,
-  },
-  featureIconText: {
-    fontSize: 18,
-    color: 'white',
+    justifyContent: 'center',
+    marginRight: theme.spacing.md,
   },
   featureContent: {
     flex: 1,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  featureTitle: {
+    color: theme.colors.textPrimary,
+    marginBottom: 4,
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    marginTop: 16,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  emptySubtext: {
-    marginTop: 8,
-    fontSize: 14,
-    opacity: 0.7,
-  },
-  addButton: {
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: '#2196F3',
-    borderRadius: 8,
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
+  featureDesc: {
+    color: theme.colors.textSecondary,
+    lineHeight: 18,
   },
 }); 

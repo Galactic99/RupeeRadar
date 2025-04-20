@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, ScrollView, Dimensions, ActivityIndicator } from "react-native";
-import { Text, SegmentedButtons, Card, useTheme } from "react-native-paper";
+import { Text, SegmentedButtons, Card } from "react-native-paper";
 import { PieChart, LineChart } from "react-native-chart-kit";
 import { Transaction, CategoryTotal } from "../../src/types/transaction";
 import { getFilteredTransactions } from "../../src/services/storageService";
 import { getStartDateForTimeframe } from "../../src/utils/dateUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { categories, getCategoryColor } from "../../src/utils/categoryEngine";
+import { useTheme } from "../../src/context/ThemeContext";
+import lightTheme, { darkTheme } from "../../src/utils/theme";
+import ThemedView from "../../src/components/ui/ThemedView";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -14,7 +17,8 @@ export default function Analytics() {
   const [timeframe, setTimeframe] = useState<"week" | "month" | "year">('month');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const theme = useTheme();
+  const { isDarkMode } = useTheme();
+  const theme = isDarkMode ? darkTheme : lightTheme;
 
   useEffect(() => {
     loadTransactions();
@@ -115,7 +119,7 @@ export default function Analytics() {
       name: item.category,
       amount: item.total,
       color: item.color,
-      legendFontColor: "#7F7F7F",
+      legendFontColor: isDarkMode ? theme.colors.textSecondary : "#7F7F7F",
       legendFontSize: 12,
     }));
   };
@@ -164,200 +168,173 @@ export default function Analytics() {
     };
   };
 
+  const chartConfig = {
+    backgroundColor: theme.colors.surface,
+    backgroundGradientFrom: theme.colors.surface,
+    backgroundGradientTo: theme.colors.surface,
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(33, 150, 243, ${opacity})`,
+    labelColor: (opacity = 1) => theme.colors.textSecondary,
+    style: {
+      borderRadius: 16,
+    },
+    propsForDots: {
+      r: "6",
+      strokeWidth: "2",
+      stroke: theme.colors.primary,
+    },
+  };
+
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading analytics...</Text>
-      </View>
+      <ThemedView>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.textPrimary }]}>Loading analytics...</Text>
+        </View>
+      </ThemedView>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <View style={styles.timeframeContainer}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>Time Period</Text>
-        <SegmentedButtons
-          value={timeframe}
-          onValueChange={(value) => setTimeframe(value as "week" | "month" | "year")}
-          buttons={[
-            { value: "week", label: "Week" },
-            { value: "month", label: "Month" },
-            { value: "year", label: "Year" },
-          ]}
-          style={styles.segmentedButtons}
-        />
-      </View>
-
-      {transactions.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="analytics-outline" size={48} color="#ccc" />
-          <Text style={styles.emptyText}>No transactions found</Text>
-          <Text style={styles.emptySubtext}>
-            Add some transactions to see analytics
-          </Text>
+    <ThemedView>
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={styles.contentContainer}
+      >
+        <View style={styles.timeframeContainer}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Time Period</Text>
+          <SegmentedButtons
+            value={timeframe}
+            onValueChange={(value) => setTimeframe(value as "week" | "month" | "year")}
+            buttons={[
+              { value: "week", label: "Week" },
+              { value: "month", label: "Month" },
+              { value: "year", label: "Year" },
+            ]}
+            style={styles.segmentedButtons}
+          />
         </View>
-      ) : (
-        <>
-          <Card style={styles.card}>
-            <Card.Title title="Spending Overview" />
-            <Card.Content style={styles.summaryContainer}>
-              <View style={styles.summaryItem}>
-                <Text variant="bodyLarge">Total Spending</Text>
-                <Text variant="headlineMedium" style={{ color: theme.colors.error }}>
-                  ₹{getTotalSpending().toFixed(0)}
-                </Text>
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.summaryItem}>
-                <Text variant="bodyLarge">Total Income</Text>
-                <Text variant="headlineMedium" style={{ color: theme.colors.primary }}>
-                  ₹{getTotalIncome().toFixed(0)}
-                </Text>
-              </View>
-            </Card.Content>
-          </Card>
 
-          <Card style={styles.card}>
-            <Card.Title title="Category Breakdown" />
-            <Card.Content>
-              {getPieChartData().length > 0 ? (
-                <>
+        {transactions.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="analytics-outline" size={48} color={theme.colors.textHint} />
+            <Text style={[styles.emptyText, { color: theme.colors.textPrimary }]}>No transactions found</Text>
+            <Text style={[styles.emptySubtext, { color: theme.colors.textSecondary }]}>
+              Add some transactions to see analytics
+            </Text>
+          </View>
+        ) : (
+          <>
+            {/* Summary Cards */}
+            <View style={styles.summaryContainer}>
+              <Card style={[styles.summaryCard, { backgroundColor: theme.colors.surface }]}>
+                <Card.Content>
+                  <Text style={[styles.cardTitle, { color: theme.colors.textSecondary }]}>
+                    Total Spent
+                  </Text>
+                  <Text style={[styles.cardAmount, { color: theme.colors.debit }]}>
+                    ₹{getTotalSpending().toLocaleString('en-IN')}
+                  </Text>
+                </Card.Content>
+              </Card>
+
+              <Card style={[styles.summaryCard, { backgroundColor: theme.colors.surface }]}>
+                <Card.Content>
+                  <Text style={[styles.cardTitle, { color: theme.colors.textSecondary }]}>
+                    Total Income
+                  </Text>
+                  <Text style={[styles.cardAmount, { color: theme.colors.credit }]}>
+                    ₹{getTotalIncome().toLocaleString('en-IN')}
+                  </Text>
+                </Card.Content>
+              </Card>
+            </View>
+
+            {/* Category Breakdown */}
+            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Spending by Category</Text>
+            <Card style={[styles.chartCard, { backgroundColor: theme.colors.surface }]}>
+              <Card.Content>
+                {getCategoryData().length > 0 ? (
                   <PieChart
                     data={getPieChartData()}
-                    width={screenWidth - 40}
+                    width={screenWidth - 64}
                     height={220}
-                    chartConfig={{
-                      backgroundColor: '#ffffff',
-                      backgroundGradientFrom: '#ffffff',
-                      backgroundGradientTo: '#ffffff',
-                      color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                    }}
+                    chartConfig={chartConfig}
                     accessor="amount"
                     backgroundColor="transparent"
                     paddingLeft="15"
                     absolute
                   />
-                  
-                  <View style={styles.categoryList}>
-                    {getCategoryData().map((item) => (
-                      <View key={item.category} style={styles.categoryItem}>
-                        <View style={styles.categoryHeader}>
-                          <View style={[styles.categoryColor, { backgroundColor: item.color }]} />
-                          <Text variant="bodyMedium">{item.category}</Text>
-                        </View>
-                        <View style={styles.categoryDetails}>
-                          <Text variant="bodyMedium">₹{item.total.toFixed(0)}</Text>
-                          <Text variant="bodySmall">{item.percentage.toFixed(1)}%</Text>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                </>
-              ) : (
-                <Text>No spending data to display</Text>
-              )}
-            </Card.Content>
-          </Card>
+                ) : (
+                  <Text style={{ color: theme.colors.textSecondary, textAlign: 'center' }}>
+                    No expense data available
+                  </Text>
+                )}
+              </Card.Content>
+            </Card>
 
-          <Card style={styles.card}>
-            <Card.Title title="Spending Trend" />
-            <Card.Content>
-              <LineChart
-                data={getTrendChartData()}
-                width={screenWidth - 40}
-                height={220}
-                chartConfig={{
-                  backgroundColor: '#ffffff',
-                  backgroundGradientFrom: '#ffffff',
-                  backgroundGradientTo: '#ffffff',
-                  decimalPlaces: 0,
-                  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                  labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                  propsForDots: {
-                    r: "4",
-                    strokeWidth: "2",
-                    stroke: theme.colors.primary,
-                  },
-                }}
-                bezier
-                style={styles.chart}
-              />
-            </Card.Content>
-          </Card>
-        </>
-      )}
-    </ScrollView>
+            {/* Spending Trend */}
+            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Spending Trend</Text>
+            <Card style={[styles.chartCard, { backgroundColor: theme.colors.surface }]}>
+              <Card.Content>
+                <LineChart
+                  data={getTrendChartData()}
+                  width={screenWidth - 64}
+                  height={220}
+                  chartConfig={chartConfig}
+                  bezier
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: 16,
+                  }}
+                />
+              </Card.Content>
+            </Card>
+
+            {/* Top Categories */}
+            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Top Categories</Text>
+            <Card style={[styles.categoriesCard, { backgroundColor: theme.colors.surface }]}>
+              <Card.Content>
+                {getCategoryData().slice(0, 5).map((category, index) => (
+                  <View key={index} style={styles.categoryRow}>
+                    <View style={styles.categoryNameContainer}>
+                      <View
+                        style={[
+                          styles.categoryColorDot,
+                          { backgroundColor: category.color },
+                        ]}
+                      />
+                      <Text style={[styles.categoryName, { color: theme.colors.textPrimary }]}>
+                        {category.category}
+                      </Text>
+                    </View>
+                    <View style={styles.categoryInfoContainer}>
+                      <Text style={[styles.categoryAmount, { color: theme.colors.textPrimary }]}>
+                        ₹{category.total.toLocaleString('en-IN')}
+                      </Text>
+                      <Text style={[styles.categoryPercentage, { color: theme.colors.textSecondary }]}>
+                        {category.percentage.toFixed(1)}%
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </Card.Content>
+            </Card>
+          </>
+        )}
+      </ScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
   },
   contentContainer: {
     padding: 16,
-  },
-  timeframeContainer: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    marginBottom: 8,
-  },
-  segmentedButtons: {
-    marginBottom: 8,
-  },
-  card: {
-    marginBottom: 16,
-    borderRadius: 8,
-    elevation: 2,
-  },
-  summaryContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  summaryItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  divider: {
-    width: 1,
-    height: "80%",
-    backgroundColor: "#e0e0e0",
-  },
-  chart: {
-    marginVertical: 8,
-    borderRadius: 16,
-  },
-  categoryList: {
-    marginTop: 16,
-  },
-  categoryItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  categoryHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  categoryColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
-  },
-  categoryDetails: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    width: "40%",
+    paddingBottom: 32,
   },
   loadingContainer: {
     flex: 1,
@@ -365,22 +342,91 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  timeframeContainer: {
+    marginBottom: 16,
+  },
+  segmentedButtons: {
     marginTop: 8,
   },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+  },
   emptyContainer: {
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
     padding: 32,
+    marginTop: 32,
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: "500",
+    fontWeight: "bold",
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
-    color: "#666",
     textAlign: "center",
     marginTop: 8,
+  },
+  summaryContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  summaryCard: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  cardTitle: {
+    fontSize: 14,
+  },
+  cardAmount: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginTop: 4,
+  },
+  chartCard: {
+    marginBottom: 16,
+  },
+  categoriesCard: {
+    marginBottom: 24,
+  },
+  categoryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.1)",
+  },
+  categoryNameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  categoryColorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  categoryName: {
+    fontSize: 14,
+  },
+  categoryInfoContainer: {
+    alignItems: "flex-end",
+  },
+  categoryAmount: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  categoryPercentage: {
+    fontSize: 12,
+    marginTop: 2,
   },
 });

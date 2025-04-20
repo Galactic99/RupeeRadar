@@ -221,4 +221,32 @@ export function getStartDateForTimeframe(timeframe: 'week' | 'month' | 'year' | 
       // Return a date far in the past
       return new Date(2000, 0, 1);
   }
+}
+
+/**
+ * Format date in a simple way (DD/MM/YYYY)
+ */
+export function formatDate(date: Date): string {
+  try {
+    return date.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return date.toISOString().split('T')[0];
+  }
+}
+
+/**
+ * Get day name from date object
+ */
+export function getDayName(date: Date): string {
+  try {
+    return date.toLocaleDateString('en-US', { weekday: 'short' });
+  } catch (error) {
+    console.error('Error getting day name:', error);
+    return '';
+  }
 } 

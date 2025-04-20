@@ -1,55 +1,100 @@
-import React from 'react';
-import { Text, View, StyleSheet, Image } from "react-native";
+import React, { useState } from 'react';
+import { Text, View, StyleSheet, ScrollView, RefreshControl } from "react-native";
 import { Stack, Link } from "expo-router";
 import Button from '../src/components/ui/Button';
+import { Ionicons } from '@expo/vector-icons';
+import Animated, { 
+  FadeInDown, 
+  FadeIn,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  Easing
+} from 'react-native-reanimated';
+import lightTheme, { darkTheme } from '../src/utils/theme';
+import { useTheme } from '../src/context/ThemeContext';
+import ThemedView from '../src/components/ui/ThemedView';
 
 export default function HomeScreen() {
+  // Animation for the logo
+  const scale = useSharedValue(1);
+  const [refreshing, setRefreshing] = useState(false);
+  const { isDarkMode } = useTheme();
+  const theme = isDarkMode ? darkTheme : lightTheme;
+  
+  React.useEffect(() => {
+    scale.value = withRepeat(
+      withTiming(1.05, { 
+        duration: 2000,
+        easing: Easing.inOut(Easing.ease),
+      }),
+      -1,
+      true
+    );
+  }, []);
+
+  const logoStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+    };
+  });
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    // Simulate refresh action
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  }, []);
+
   return (
-    <>
-      <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>RupeeRadar</Text>
-          <Text style={styles.subtitle}>Track your expenses with SMS analysis</Text>
-        </View>
+    <ThemedView>
+      <Stack.Screen options={{ 
+        headerShown: false,
+        animation: 'slide_from_right',
+        contentStyle: { backgroundColor: theme.colors.background },
+      }} />
+      <ScrollView 
+        style={[styles.container, { backgroundColor: theme.colors.background }]} 
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }
+      >
+        <Animated.View 
+          style={styles.header}
+          entering={FadeInDown.duration(800).springify()}
+        >
+          <Text style={[styles.title, { color: theme.colors.primary }]}>RupeeRadar</Text>
+          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Track your expenses with SMS analysis</Text>
+        </Animated.View>
         
-        <View style={styles.imageContainer}>
-          {/* Add an image or logo here if you have one */}
-          <View style={styles.logoPlaceholder}>
+        <Animated.View 
+          style={[styles.imageContainer, logoStyle]}
+          entering={FadeIn.delay(300).duration(1000)}
+        >
+          <View style={[styles.logoPlaceholder, { backgroundColor: theme.colors.primary }]}>
             <Text style={styles.logoText}>₹</Text>
+            <Animated.View style={[styles.logoGlow, { borderColor: `${theme.colors.primary}40` }]} />
           </View>
-        </View>
+        </Animated.View>
         
-        <View style={styles.featuresContainer}>
-          <Text style={styles.featuresTitle}>Features</Text>
-          
-          <View style={styles.featureItem}>
-            <View style={styles.featureDot} />
-            <Text style={styles.featureText}>Analyze bank SMS messages</Text>
-          </View>
-          
-          <View style={styles.featureItem}>
-            <View style={styles.featureDot} />
-            <Text style={styles.featureText}>Auto-categorize transactions</Text>
-          </View>
-          
-          <View style={styles.featureItem}>
-            <View style={styles.featureDot} />
-            <Text style={styles.featureText}>Visual spending breakdowns</Text>
-          </View>
-          
-          <View style={styles.featureItem}>
-            <View style={styles.featureDot} />
-            <Text style={styles.featureText}>Get spending alerts and insights</Text>
-          </View>
-        </View>
-        
-        <View style={styles.buttonsContainer}>
+        <Animated.View 
+          style={styles.buttonsContainer}
+          entering={FadeInDown.delay(500).duration(800)}
+        >
           <Link href="/sms-input" asChild>
             <Button 
               title="Analyze SMS" 
               onPress={() => {}} 
               style={styles.button}
+              icon={<Ionicons name="scan-outline" size={20} color="white" style={styles.buttonIcon} />}
             />
           </Link>
           
@@ -59,100 +104,80 @@ export default function HomeScreen() {
               onPress={() => {}} 
               variant="outlined"
               style={styles.button}
+              icon={<Ionicons name="grid-outline" size={20} color={theme.colors.primary} style={styles.buttonIcon} />}
             />
           </Link>
-        </View>
-      </View>
-    </>
+        </Animated.View>
+      </ScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 20,
+    padding: 16,
+  },
+  contentContainer: {
+    padding: 16,
+    paddingBottom: 48,
+    flexGrow: 1,
+    justifyContent: 'space-between',
   },
   header: {
     marginTop: 60,
     alignItems: 'center',
   },
   title: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#2196F3',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
     textAlign: 'center',
   },
   imageContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 40,
+    marginVertical: 60,
   },
   logoPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#2196F3',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 4,
+    position: 'relative',
+    overflow: 'visible',
+  },
+  logoGlow: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    zIndex: -1,
   },
   logoText: {
-    fontSize: 64,
+    fontSize: 80,
     fontWeight: 'bold',
     color: 'white',
   },
-  featuresContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 30,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  featuresTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    color: '#333',
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  featureDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#2196F3',
-    marginRight: 10,
-  },
-  featureText: {
-    fontSize: 15,
-    color: '#444',
-  },
   buttonsContainer: {
     marginTop: 'auto',
-    marginBottom: 20,
+    marginBottom: 32,
   },
   button: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  link: {
-    marginTop: 20,
-    padding: 10,
-    backgroundColor: "#2196F3",
-    borderRadius: 5,
-    color: "white",
-    fontWeight: "bold",
-    textAlign: "center",
+  buttonIcon: {
+    marginRight: 4,
   },
 });

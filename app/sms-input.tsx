@@ -9,22 +9,29 @@ import {
   Keyboard,
   Alert,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { parseTransactionSMS } from '../src/utils/smsParser';
 import { categorizeTransaction } from '../src/utils/categoryEngine';
 import TransactionPreview from '../src/components/transaction/TransactionPreview';
 import Button from '../src/components/ui/Button';
+import LoadingIndicator from '../src/components/ui/LoadingIndicator';
 import { Transaction } from '../src/types/transaction';
 import { saveTransaction as saveTransactionToStorage } from '../src/services/storageService';
+import theme from '../src/utils/theme';
+import Animated, { FadeIn, FadeInUp, FadeOut } from 'react-native-reanimated';
 
 export default function SMSInputScreen() {
   const [smsText, setSmsText] = useState('');
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
   // Clear transaction preview when SMS text changes
@@ -44,6 +51,7 @@ export default function SMSInputScreen() {
     const text = await Clipboard.getStringAsync();
     if (text) {
       setSmsText(text);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } else {
       Alert.alert('Clipboard Empty', 'There is no text in the clipboard to paste.');
     }
@@ -52,6 +60,7 @@ export default function SMSInputScreen() {
   // Function to analyze SMS text
   const analyzeSMS = async () => {
     Keyboard.dismiss();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
     if (!smsText.trim()) {
       setError('Please enter SMS text to analyze');
@@ -75,12 +84,15 @@ export default function SMSInputScreen() {
         };
         
         setTransaction(transactionWithCategory);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
         setError('Could not identify transaction details from the SMS. Please check the format.');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch (err) {
       console.error('Error parsing SMS:', err);
       setError('An error occurred while analyzing the SMS.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
     }
@@ -91,24 +103,29 @@ export default function SMSInputScreen() {
     if (!transaction) return;
     
     try {
-      setIsLoading(true);
+      setIsSaving(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       
       // Save to AsyncStorage using our service
       await saveTransactionToStorage(transaction);
+      
+      // Success feedback
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       
       // Success message
       Alert.alert(
         'Transaction Saved', 
         'Transaction has been successfully saved.',
         [
-          { text: 'OK', onPress: () => router.push('/dashboard') }
+          { text: 'OK', onPress: () => router.push("/dashboard/expenses" as any) }
         ]
       );
     } catch (error) {
       console.error('Error saving transaction:', error);
       Alert.alert('Error', 'Failed to save transaction. Please try again.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
@@ -117,6 +134,20 @@ export default function SMSInputScreen() {
     setSmsText('');
     setTransaction(null);
     setError(null);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  // Function to refresh screen
+  const onRefresh = async () => {
+    setRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Clear data
+    setSmsText('');
+    setTransaction(null);
+    setError(null);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
   };
 
   return (
@@ -124,15 +155,32 @@ export default function SMSInputScreen() {
       <Stack.Screen 
         options={{ 
           title: 'SMS Analysis',
-          headerShown: true
+          headerShown: true,
+          headerStyle: {
+            backgroundColor: theme.colors.background,
+          },
+          headerTintColor: theme.colors.primary,
+          headerShadowVisible: false,
         }} 
       />
-      <ScrollView 
+      <Animated.ScrollView 
         style={styles.container} 
         contentContainerStyle={styles.contentContainer}
         keyboardShouldPersistTaps="handled"
+        entering={FadeIn.duration(300)}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }
       >
-        <View style={styles.inputContainer}>
+        <Animated.View 
+          style={styles.inputContainer}
+          entering={FadeInUp.duration(500).springify()}
+        >
           <Text style={styles.label}>Paste your bank transaction SMS below</Text>
           
           <View style={styles.textInputContainer}>
@@ -142,7 +190,7 @@ export default function SMSInputScreen() {
               value={smsText}
               onChangeText={setSmsText}
               placeholder="Paste your SMS here..."
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.textHint}
               autoCapitalize="none"
               autoCorrect={false}
               textAlignVertical="top"
@@ -154,7 +202,7 @@ export default function SMSInputScreen() {
                   style={styles.clearButton} 
                   onPress={clearInput}
                 >
-                  <Ionicons name="close-circle" size={24} color="#888" />
+                  <Ionicons name="close-circle" size={24} color={theme.colors.textHint} />
                 </TouchableOpacity>
               ) : null}
               
@@ -162,13 +210,19 @@ export default function SMSInputScreen() {
                 style={styles.pasteButton} 
                 onPress={pasteFromClipboard}
               >
-                <Ionicons name="clipboard-outline" size={24} color="#2196F3" />
+                <Ionicons name="clipboard-outline" size={24} color={theme.colors.primary} />
               </TouchableOpacity>
             </View>
           </View>
           
           {error ? (
-            <Text style={styles.errorText}>{error}</Text>
+            <Animated.Text 
+              style={styles.errorText}
+              entering={FadeIn.duration(300)}
+              exiting={FadeOut.duration(200)}
+            >
+              {error}
+            </Animated.Text>
           ) : null}
           
           <Button
@@ -177,38 +231,66 @@ export default function SMSInputScreen() {
             loading={isLoading}
             disabled={!smsText.trim()}
             style={styles.button}
+            icon={!isLoading ? <Ionicons name="analytics-outline" size={20} color="white" style={styles.buttonIcon} /> : undefined}
           />
-        </View>
+        </Animated.View>
 
-        {transaction ? (
-          <View style={styles.previewContainer}>
+        {isLoading && (
+          <LoadingIndicator text="Analyzing SMS message..." />
+        )}
+
+        {transaction && !isLoading && (
+          <Animated.View 
+            style={styles.previewContainer}
+            entering={FadeInUp.duration(500).delay(200)}
+          >
             <TransactionPreview transaction={transaction} />
             
             <Button
               title="Save Transaction"
               onPress={saveTransaction}
+              loading={isSaving}
               variant="primary"
               style={styles.saveButton}
+              icon={!isSaving ? <Ionicons name="save-outline" size={20} color="white" style={styles.buttonIcon} /> : undefined}
             />
-          </View>
-        ) : null}
+          </Animated.View>
+        )}
 
         <View style={styles.examples}>
           <Text style={styles.examplesTitle}>Example SMS Formats</Text>
           
-          <Text style={styles.exampleText}>
-            HDFC Bank: INR 1,499.00 debited from a/c XX1234 on 12-04-23 AMAZON. Avl bal: INR 24,599.35
-          </Text>
+          <Animated.View 
+            style={styles.exampleCard}
+            entering={FadeInUp.duration(400).delay(400)}
+          >
+            <Text style={styles.exampleLabel}>HDFC Bank</Text>
+            <Text style={styles.exampleText}>
+              HDFC Bank: INR 1,499.00 debited from a/c XX1234 on 12-04-23 AMAZON. Avl bal: INR 24,599.35
+            </Text>
+          </Animated.View>
           
-          <Text style={styles.exampleText}>
-            INR 699 debited from A/c no XX5678 on 15-04-23 UPI-ZOMATO. Bal: INR 18,432.56
-          </Text>
-
-          <Text style={styles.exampleText}>
-            Dear UPI user A/C X4963 debited by 60.0 on date 18Feb25 trf to Jamal Store Refno 541567581752. If not u? call 1800111109. -SBI
-          </Text>
+          <Animated.View 
+            style={styles.exampleCard}
+            entering={FadeInUp.duration(400).delay(500)}
+          >
+            <Text style={styles.exampleLabel}>ICICI Bank</Text>
+            <Text style={styles.exampleText}>
+              Rs.850.00 debited from a/c XX3456 on 13-Apr-23 towards UPI-SWIGGY RefNo 123456789012.
+            </Text>
+          </Animated.View>
+          
+          <Animated.View 
+            style={styles.exampleCard}
+            entering={FadeInUp.duration(400).delay(600)}
+          >
+            <Text style={styles.exampleLabel}>SBI</Text>
+            <Text style={styles.exampleText}>
+              Your A/c X4321 is debited with Rs.2,500.00 on 10/04/2023 (UPI Ref No 123456789) and A/c bal is Rs 52,425.75
+            </Text>
+          </Animated.View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </>
   );
 }
@@ -216,82 +298,92 @@ export default function SMSInputScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
   contentContainer: {
-    padding: 16,
+    padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxl,
+    flexGrow: 1,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: theme.spacing.lg,
   },
   label: {
     fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 8,
-    color: '#333',
+    fontWeight: '600',
+    marginBottom: theme.spacing.sm,
+    color: theme.colors.textPrimary,
   },
   textInputContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    marginBottom: 10,
+    position: 'relative',
+    marginBottom: theme.spacing.md,
   },
   textInput: {
-    height: 120,
-    padding: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    paddingRight: 50,
+    minHeight: 120,
     fontSize: 15,
-    color: '#333',
-    textAlignVertical: 'top',
+    color: theme.colors.textPrimary,
+    borderWidth: 1,
+    borderColor: theme.colors.divider,
+    ...theme.shadows.small,
   },
   inputActions: {
     position: 'absolute',
-    right: 8,
-    bottom: 8,
+    right: theme.spacing.sm,
+    top: theme.spacing.sm,
     flexDirection: 'row',
   },
   clearButton: {
-    padding: 4,
-    marginRight: 8,
+    padding: theme.spacing.xs,
+    marginRight: theme.spacing.xs,
   },
   pasteButton: {
-    padding: 4,
-  },
-  button: {
-    marginTop: 10,
-    width: '100%',
+    padding: theme.spacing.xs,
   },
   errorText: {
-    color: '#f44336',
-    marginBottom: 10,
+    color: theme.colors.error,
+    marginBottom: theme.spacing.md,
+    fontSize: 14,
+  },
+  button: {
+    marginTop: theme.spacing.sm,
   },
   previewContainer: {
-    marginBottom: 20,
+    marginBottom: theme.spacing.xl,
   },
   saveButton: {
-    marginTop: 10,
-    width: '100%',
+    marginTop: theme.spacing.md,
   },
   examples: {
-    backgroundColor: '#e3f2fd',
-    padding: 16,
-    borderRadius: 8,
-    marginTop: 10,
+    marginTop: theme.spacing.lg,
   },
   examplesTitle: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: '600',
-    marginBottom: 8,
-    color: '#333',
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.md,
+  },
+  exampleCard: {
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
+  exampleLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
+    marginBottom: theme.spacing.xs,
   },
   exampleText: {
-    fontSize: 12,
-    color: '#555',
-    marginBottom: 8,
-    backgroundColor: '#fff',
-    padding: 8,
-    borderRadius: 4,
-    borderLeftWidth: 2,
-    borderLeftColor: '#2196F3',
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+  buttonIcon: {
+    marginRight: theme.spacing.xs,
   },
 }); 
