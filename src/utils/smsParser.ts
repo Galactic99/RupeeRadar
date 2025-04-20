@@ -320,12 +320,31 @@ export function formatTransactionDate(dateStr: string): string {
 export function isTransactionSMS(smsText: string): boolean {
   if (!smsText) return false;
   
+  // First check for promotional keywords that should exclude the message
+  const promotionalKeywords = [
+    /offer/i, /off on/i, /discount/i, /cashback/i, /promo/i, 
+    /coupon/i, /sale/i, /deal/i, /limited time/i, /off your next/i,
+    /% off/i, /Rs\.?\s*\d+\s*off/i, /free/i, /save/i
+  ];
+  
+  // If any promotional keyword is found, exclude this message
+  if (promotionalKeywords.some(keyword => keyword.test(smsText))) {
+    return false;
+  }
+  
   // Look for common keywords in transaction messages
   const transactionKeywords = [
-    /debited/i, /credited/i, /transaction/i, /spent/i, /payment/i,
-    /account/i, /a\/c/i, /bank/i, /bal/i, /transfer/i, /upi/i,
-    /rupees/i, /rs\./i, /inr/i, /₹/, /trf to/i, /refno/i,
-    /debit/i, /credit/i, /paid/i, /received/i, /withdraw/i
+    /debited from/i, /credited to/i, /transaction/i, /spent on/i, 
+    /payment/i, /account/i, /a\/c/i, /bank/i, /bal[:)]/, 
+    /balance/i, /transfer/i, /upi/i,
+    /trf to/i, /refno/i, /withdraw/i
+  ];
+  
+  // Check for currency indicators, but only if they're related to an actual transaction
+  const currencyPatterns = [
+    /(?:debited|credited|paid|received|sent|spent)\s+(?:rs\.?|inr|₹)\s*[\d,.]+/i,
+    /(?:rs\.?|inr|₹)\s*[\d,.]+\s+(?:debited|credited|paid|received|sent|spent)/i,
+    /(?:rs\.?|inr|₹)\s+[\d,.]+\s+(?:has been|was|is)/i
   ];
   
   // Check for UPI specific patterns
@@ -339,5 +358,6 @@ export function isTransactionSMS(smsText: string): boolean {
   ];
   
   return transactionKeywords.some(keyword => keyword.test(smsText)) || 
+         currencyPatterns.some(pattern => pattern.test(smsText)) ||
          upiPatterns.some(pattern => pattern.test(smsText));
-} 
+}
