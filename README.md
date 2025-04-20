@@ -48,3 +48,21 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+## AI-Powered Features Setup
+
+RupeeRadar uses Google's Gemini AI to provide smart transaction categorization and personalized spending insights. To use these features, you'll need to:
+
+1. Get a Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Copy the `.env.example` file to `.env`
+3. Add your API key to the `.env` file:
+   ```
+   GEMINI_API_KEY=your_api_key_here
+   ```
+
+This will enable:
+- AI-powered transaction categorization
+- Personalized spending insights
+- Anomaly detection for unusual transactions
+
+> Note: Without a valid API key, these features will display a user-friendly error message and fall back to basic functionality.
