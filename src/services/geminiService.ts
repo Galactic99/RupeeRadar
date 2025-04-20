@@ -565,6 +565,7 @@ export async function verifyTransactionSMS(smsText: string): Promise<{isTransact
       
       A transaction SMS typically contains:
       - References to money/amounts (Rs, INR, ₹, etc.). Only consider these if they mention actions like debited, credited, paid, received, withdrawn etc
+      - Dont consider messages like rs 150 off on your next swiggy order or zomato order or any other offers
       - Actions like debited, credited, paid, received, withdrawn
       - Account references (A/c, account, UPI)
       - References to transfers, payments, or purchases
